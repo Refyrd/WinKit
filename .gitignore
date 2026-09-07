@@ -1,0 +1,21 @@
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Temporary files
+*.tmp
+*.log
+*.bak
+~$*
+
+# IDE
+.vscode/
+.idea/
+*.suo
+*.user
+
+# OS generated
+*.DS_Store
+
