@@ -25,10 +25,9 @@
    > 1. [■] Google Chrome
      2. [ ] Mozilla Firefox
      3. [ ] Brave Browser
-     4. [ ] Opera GX
-     5. [ ] Vivaldi
+     4. [ ] Vivaldi
 
-   Selected: 4 of 30
+   Selected: 4 of 25
    > _
 ```
 
@@ -65,14 +64,14 @@ setup.bat
 | 🛡 **Auto-elevate** | Requests admin rights automatically |
 | ⚡ **One-liner** | Install via `irm ... \| iex` — no git needed |
 
-## 📦 Available Apps (30)
+## 📦 Available Apps (25)
 
 | Category | Apps |
 |----------|------|
-| 🌐 **Browsers** | Google Chrome, Mozilla Firefox, Brave, Opera GX, Vivaldi |
-| 💻 **Development** | VS Code, Git, Python 3, Node.js LTS, Notepad++, Windows Terminal, Docker Desktop |
-| 🎮 **Gaming / Social** | Steam, Discord, Telegram, Epic Games, GOG Galaxy |
-| 🎬 **Media** | VLC, Spotify, OBS Studio, iTunes, K-Lite Codec Pack |
+| 🌐 **Browsers** | Google Chrome, Mozilla Firefox, Brave, Vivaldi |
+| 💻 **Development** | VS Code, Git, Python 3, Node.js LTS, Notepad++, Docker Desktop |
+| 🎮 **Gaming / Social** | Steam, Discord, Telegram |
+| 🎬 **Media** | VLC, Spotify, OBS Studio, K-Lite Codec Pack |
 | 🛠 **Utilities** | 7-Zip, WinRAR, qBittorrent, MSI Afterburner, PowerToys, Everything, Rufus, ShareX |
 
 > 💡 **Want to add your own apps?** Edit `setup.bat` — add `Name`, `Id`, and `Cat` into the `$apps` array.

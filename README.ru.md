@@ -25,10 +25,9 @@
    > 1. [■] Google Chrome
      2. [ ] Mozilla Firefox
      3. [ ] Brave Browser
-     4. [ ] Opera GX
-     5. [ ] Vivaldi
+     4. [ ] Vivaldi
 
-   Selected: 4 of 30
+   Selected: 4 of 25
    > _
 ```
 
@@ -65,14 +64,14 @@ setup.bat
 | 🛡 **Авто-права** | Автоматический запрос прав администратора |
 | ⚡ **Одна команда** | Установка через `irm ... \| iex` — без git |
 
-## 📦 Доступные приложения (30)
+## 📦 Доступные приложения (25)
 
 | Категория | Приложения |
 |-----------|-----------|
-| 🌐 **Браузеры** | Google Chrome, Mozilla Firefox, Brave, Opera GX, Vivaldi |
-| 💻 **Разработка** | VS Code, Git, Python 3, Node.js LTS, Notepad++, Windows Terminal, Docker Desktop |
-| 🎮 **Игры и общение** | Steam, Discord, Telegram, Epic Games, GOG Galaxy |
-| 🎬 **Медиа** | VLC, Spotify, OBS Studio, iTunes, K-Lite Codec Pack |
+| 🌐 **Браузеры** | Google Chrome, Mozilla Firefox, Brave, Vivaldi |
+| 💻 **Разработка** | VS Code, Git, Python 3, Node.js LTS, Notepad++, Docker Desktop |
+| 🎮 **Игры и общение** | Steam, Discord, Telegram |
+| 🎬 **Медиа** | VLC, Spotify, OBS Studio, K-Lite Codec Pack |
 | 🛠 **Утилиты** | 7-Zip, WinRAR, qBittorrent, MSI Afterburner, PowerToys, Everything Search, Rufus, ShareX |
 
 > 💡 **Хотите добавить свои приложения?** Отредактируйте `setup.bat` — добавьте `Name`, `Id`, `Cat` в массив `$apps`.

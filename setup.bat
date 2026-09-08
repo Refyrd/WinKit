@@ -35,7 +35,6 @@ $apps = @(
     @{Name="Google Chrome";      Id="Google.Chrome";              Cat=0; Sel=$false},
     @{Name="Mozilla Firefox";    Id="Mozilla.Firefox";            Cat=0; Sel=$false},
     @{Name="Brave Browser";      Id="Brave.Brave";               Cat=0; Sel=$false},
-    @{Name="Opera GX";           Id="Opera.OperaGX";              Cat=0; Sel=$false},
     @{Name="Vivaldi";            Id="VivaldiTechnologies.Vivaldi";Cat=0; Sel=$false},
 
     # Cat 1: Development
@@ -44,21 +43,17 @@ $apps = @(
     @{Name="Python 3";           Id="Python.Python.3.12";         Cat=1; Sel=$false},
     @{Name="Node.js LTS";        Id="OpenJS.NodeJS.LTS";          Cat=1; Sel=$false},
     @{Name="Notepad++";          Id="Notepad++.Notepad++";        Cat=1; Sel=$false},
-    @{Name="Windows Terminal";   Id="Microsoft.WindowsTerminal";  Cat=1; Sel=$false},
     @{Name="Docker Desktop";     Id="Docker.DockerDesktop";       Cat=1; Sel=$false},
 
     # Cat 2: Gaming / Social
     @{Name="Steam";              Id="Valve.Steam";                Cat=2; Sel=$false},
     @{Name="Discord";            Id="Discord.Discord";            Cat=2; Sel=$false},
     @{Name="Telegram";           Id="Telegram.TelegramDesktop";   Cat=2; Sel=$false},
-    @{Name="Epic Games";         Id="EpicGames.EpicGamesLauncher";Cat=2; Sel=$false},
-    @{Name="GOG Galaxy";         Id="GOG.Galaxy";                 Cat=2; Sel=$false},
 
     # Cat 3: Media
     @{Name="VLC Media Player";   Id="VideoLAN.VLC";               Cat=3; Sel=$false},
     @{Name="Spotify";            Id="Spotify.Spotify";            Cat=3; Sel=$false},
     @{Name="OBS Studio";         Id="OBSProject.OBSStudio";       Cat=3; Sel=$false},
-    @{Name="iTunes";             Id="Apple.iTunes";               Cat=3; Sel=$false},
     @{Name="K-Lite Codec Pack";  Id="CodecGuide.K-LiteCodecPack.Standard"; Cat=3; Sel=$false},
 
     # Cat 4: Utilities
