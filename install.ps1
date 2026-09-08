@@ -8,8 +8,8 @@ Write-Host ""
 $tempDir = Join-Path $env:TEMP "WinKit"
 if (!(Test-Path $tempDir)) { New-Item -ItemType Directory -Path $tempDir -Force | Out-Null }
 
-$batUrl = "https://raw.githubusercontent.com/Refyrd/WinKit/main/setup.bat"
-$batPath = Join-Path $tempDir "setup.bat"
+$batUrl = "https://raw.githubusercontent.com/Refyrd/WinKit/main/winkit.bat"
+$batPath = Join-Path $tempDir "winkit.bat"
 
 try {
     Invoke-WebRequest -Uri $batUrl -OutFile $batPath -UseBasicParsing
