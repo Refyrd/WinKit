@@ -72,11 +72,7 @@ $page = 0
 $cur = 0
 
 function Get-Items($p) {
-    $r = @()
-    for ($i = 0; $i -lt $apps.Count; $i++) {
-        if ($apps[$i].Cat -eq $p) { $r += $i }
-    }
-    return $r
+    return @(0..($apps.Count-1) | Where-Object { $apps[$_].Cat -eq $p })
 }
 
 function Draw {
@@ -84,42 +80,28 @@ function Draw {
     $sc = ($apps | Where-Object { $_.Sel }).Count
     $items = Get-Items $page
 
-    Write-Host ""
-    Write-Host "  ======================================================" -Fore Cyan
-    Write-Host "  |" -Fore Cyan -NoNewline
-    Write-Host "           WinKit - App Installer                " -Fore White -NoNewline
-    Write-Host "|" -Fore Cyan
-    Write-Host "  ======================================================" -Fore Cyan
-    Write-Host ""
+    Write-Host "`n  ======================================================" -Fore Cyan
+    Write-Host "  |           WinKit - App Installer                |" -Fore Cyan
+    Write-Host "  ======================================================`n" -Fore Cyan
 
     # Page tabs
     Write-Host "   " -NoNewline
     for ($p = 0; $p -lt $cats.Count; $p++) {
-        if ($p -eq $page) {
-            Write-Host " [$($p+1)]" -Fore White -NoNewline
-        } else {
-            Write-Host "  $($p+1) " -Fore DarkGray -NoNewline
-        }
+        if ($p -eq $page) { Write-Host " [$($p+1)]" -Fore White -NoNewline }
+        else { Write-Host "  $($p+1) " -Fore DarkGray -NoNewline }
     }
-    Write-Host ""
-    Write-Host ""
-    Write-Host "   $($cats[$page])" -Fore Yellow
-    Write-Host ""
+    Write-Host "`n`n   $($cats[$page])`n" -Fore Yellow
 
     # Items
     for ($j = 0; $j -lt $items.Count; $j++) {
         $idx = $items[$j]
         $a = $apps[$idx]
         $n = $idx + 1
-        $pad = if ($n -lt 10) {"  "} else {" "}
+        $pad = " " * (2 - "$n".Length)
         $check = if ($a.Sel) {"[x]"} else {"[ ]"}
         $arrow = if ($j -eq $cur) {">"} else {" "}
+        $color = if ($a.Sel) {"Green"} elseif ($j -eq $cur) {"White"} else {"Gray"}
 
-        if ($j -eq $cur) {
-            $color = if ($a.Sel) {"Green"} else {"White"}
-        } else {
-            $color = if ($a.Sel) {"Green"} else {"Gray"}
-        }
         Write-Host "   $arrow $pad$n. $check $($a.Name)" -Fore $color
     }
 
@@ -129,22 +111,19 @@ function Draw {
         for ($e = 0; $e -lt $empty; $e++) { Write-Host "" }
     }
 
-    Write-Host ""
-    Write-Host "  ------------------------------------------------------" -Fore Cyan
+    Write-Host "`n  ------------------------------------------------------" -Fore Cyan
     Write-Host "   Selected: " -Fore White -NoNewline
     Write-Host "$sc" -Fore Green -NoNewline
     Write-Host " of $($apps.Count)" -Fore White
-    Write-Host "  ------------------------------------------------------" -Fore Cyan
-    Write-Host ""
-    Write-Host "   " -NoNewline
-    Write-Host "[<] [>]" -Fore Cyan -NoNewline
+    Write-Host "  ------------------------------------------------------`n" -Fore Cyan
+    
+    Write-Host "   [<] [>]" -Fore Cyan -NoNewline
     Write-Host " pages  " -Fore DarkGray -NoNewline
     Write-Host "[Space]" -Fore Cyan -NoNewline
     Write-Host " toggle  " -Fore DarkGray -NoNewline
     Write-Host "[A]" -Fore Green -NoNewline
     Write-Host " all" -Fore DarkGray
-    Write-Host "   " -NoNewline
-    Write-Host "[Enter]" -Fore Green -NoNewline
+    Write-Host "   [Enter]" -Fore Green -NoNewline
     Write-Host " install  " -Fore DarkGray -NoNewline
     Write-Host "[C]" -Fore Yellow -NoNewline
     Write-Host " clear   " -Fore DarkGray -NoNewline
@@ -206,13 +185,9 @@ while ($true) {
 
 # === INSTALL ===
 [Console]::Clear()
-Write-Host ""
-Write-Host "  ==========================================================" -Fore Cyan
-Write-Host "  |" -Fore Cyan -NoNewline
-Write-Host "              Installing apps...                       " -Fore White -NoNewline
-Write-Host "|" -Fore Cyan
-Write-Host "  ==========================================================" -Fore Cyan
-Write-Host ""
+Write-Host "`n  ==========================================================" -Fore Cyan
+Write-Host "  |              Installing apps...                       |" -Fore Cyan
+Write-Host "  ==========================================================`n" -Fore Cyan
 
 $ok = 0; $fail = 0; $done = 0
 $results = @()
@@ -243,24 +218,15 @@ foreach ($a in $sel) {
 }
 
 # === RESULTS ===
-Write-Host ""
-Write-Host "  ==========================================================" -Fore Cyan
-Write-Host "  |" -Fore Cyan -NoNewline
-Write-Host "              Installation Results                     " -Fore White -NoNewline
-Write-Host "|" -Fore Cyan
-Write-Host "  ==========================================================" -Fore Cyan
-Write-Host ""
+Write-Host "`n  ==========================================================" -Fore Cyan
+Write-Host "  |              Installation Results                     |" -Fore Cyan
+Write-Host "  ==========================================================`n" -Fore Cyan
 foreach ($r in $results) {
-    if ($r.S -eq "OK") {
-        Write-Host "     [OK]   $($r.N)" -Fore Green
-    } else {
-        Write-Host "     [FAIL] $($r.N)" -Fore Red
-    }
+    if ($r.S -eq "OK") { Write-Host "     [OK]   $($r.N)" -Fore Green }
+    else { Write-Host "     [FAIL] $($r.N)" -Fore Red }
 }
-Write-Host ""
-Write-Host "  ----------------------------------------------------------" -Fore Cyan
+Write-Host "`n  ----------------------------------------------------------" -Fore Cyan
 Write-Host "   OK: $ok  |  Failed: $fail  |  Total: $($sel.Count)" -Fore White
-Write-Host "  ----------------------------------------------------------" -Fore Cyan
-Write-Host ""
+Write-Host "  ----------------------------------------------------------`n" -Fore Cyan
 Write-Host "  Press any key to exit..."
 [Console]::ReadKey($true) | Out-Null
