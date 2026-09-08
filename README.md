@@ -8,6 +8,8 @@
 [![Windows](https://img.shields.io/badge/Platform-Windows%2010%2F11-0078D6?logo=windows)](https://www.microsoft.com/windows)
 [![WinGet](https://img.shields.io/badge/Powered%20by-WinGet-4B0082)](https://github.com/microsoft/winget-cli)
 
+**🇷🇺 [Читать на русском](README.ru.md)**
+
 <br>
 
 **Skip the boring setup.** WinKit lets you pick all the apps you need from a single screen and installs them in one go — no clicking through wizards, no hunting for downloads.
@@ -16,27 +18,27 @@
 
 ```
  ╔════════════════════════════════════════════════════════╗
- ║          AutoInstall — Мастер установки ПО            ║
+ ║             WinKit — App Installer                    ║
  ╚════════════════════════════════════════════════════════╝
 
-   [Браузеры]
+   [Browsers]
      1. [■] Google Chrome
      2. [ ] Mozilla Firefox
 
-   [Разработка]
+   [Development]
      3. [■] Visual Studio Code
 
-   [Игры и общение]
+   [Gaming & Social]
      4. [■] Steam
      5. [ ] Discord
 
-   [Медиа и утилиты]
+   [Media & Utilities]
      6. [ ] VLC Media Player
      7. [■] 7-Zip
      8. [ ] Happ
      9. [ ] MSI Afterburner
 
-   Выбрано: 4 из 9
+   Selected: 4 of 9
    > _
 ```
 
@@ -81,7 +83,7 @@ That's it. The script auto-elevates to admin, shows you the app list, and instal
 | 🛠 Media & Utilities | Happ | `Happ.Happ` |
 | 🛠 Media & Utilities | MSI Afterburner | `Guru3D.Afterburner` |
 
-> 💡 Want to add your own apps? Just edit the app list in `setup.bat` — it's dead simple. Add a `NAME_`, `ID_`, and `CAT_` line and bump the `TOTAL` counter.
+> 💡 **Want to add your own apps?** Just edit the app list in `setup.bat` — add a `NAME_`, `ID_`, and `CAT_` line and bump the `TOTAL` counter.
 
 ## ⌨️ Controls
 

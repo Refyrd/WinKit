@@ -2,11 +2,11 @@
 chcp 65001 >nul
 
 :: ═══════════════════════════════════════════════════════════════
-::  WinKit — быстрая установка программ через WinGet
+::  WinKit — quick app installer powered by WinGet
 ::  GitHub: https://github.com/Refyrd/WinKit
 :: ═══════════════════════════════════════════════════════════════
 
-:: Проверка прав администратора
+:: Check for administrator privileges
 net session >nul 2>&1
 if %errorlevel% neq 0 (
     echo Set UAC = CreateObject^("Shell.Application"^) > "%temp%\getadmin.vbs"
@@ -19,9 +19,9 @@ if %errorlevel% neq 0 (
 if "%1"=="admin" cd /d "%~dp0"
 
 setlocal EnableDelayedExpansion
-title WinKit — Мастер установки ПО
+title WinKit — App Installer
 
-:: ─── Цвета ───
+:: ─── Colors ───
 for /F %%a in ('echo prompt $E ^| cmd') do set "ESC=%%a"
 set "C_RESET=%ESC%[0m"
 set "C_CYAN=%ESC%[96m"
@@ -32,61 +32,61 @@ set "C_GRAY=%ESC%[90m"
 set "C_WHITE=%ESC%[97m"
 set "C_BOLD=%ESC%[1m"
 
-:: ─── Список приложений ───
-:: Формат: NAME_N=Отображаемое имя | ID_N=WinGet ID
+:: ─── App List ───
+:: Format: NAME_N=Display name | ID_N=WinGet ID | CAT_N=Category
 set "TOTAL=9"
 
 set "NAME_1=Google Chrome"
 set "ID_1=Google.Chrome"
-set "CAT_1=Браузеры"
+set "CAT_1=Browsers"
 
 set "NAME_2=Mozilla Firefox"
 set "ID_2=Mozilla.Firefox"
-set "CAT_2=Браузеры"
+set "CAT_2=Browsers"
 
 set "NAME_3=Visual Studio Code"
 set "ID_3=Microsoft.VisualStudioCode"
-set "CAT_3=Разработка"
+set "CAT_3=Development"
 
 set "NAME_4=Steam"
 set "ID_4=Valve.Steam"
-set "CAT_4=Игры и общение"
+set "CAT_4=Gaming ^& Social"
 
 set "NAME_5=Discord"
 set "ID_5=Discord.Discord"
-set "CAT_5=Игры и общение"
+set "CAT_5=Gaming ^& Social"
 
 set "NAME_6=VLC Media Player"
 set "ID_6=VideoLAN.VLC"
-set "CAT_6=Медиа и утилиты"
+set "CAT_6=Media ^& Utilities"
 
 set "NAME_7=7-Zip"
 set "ID_7=7zip.7zip"
-set "CAT_7=Медиа и утилиты"
+set "CAT_7=Media ^& Utilities"
 
 set "NAME_8=Happ"
 set "ID_8=Happ.Happ"
-set "CAT_8=Медиа и утилиты"
+set "CAT_8=Media ^& Utilities"
 
 set "NAME_9=MSI Afterburner"
 set "ID_9=Guru3D.Afterburner"
-set "CAT_9=Медиа и утилиты"
+set "CAT_9=Media ^& Utilities"
 
-:: ─── Инициализация выбора ───
+:: ─── Initialize selection ───
 for /L %%i in (1,1,%TOTAL%) do set "SEL_%%i=0"
 
 :: ═══════════════════════════════════════════════════════════════
-::  ГЛАВНОЕ МЕНЮ
+::  MAIN MENU
 :: ═══════════════════════════════════════════════════════════════
 :main_menu
 cls
 echo.
 echo  %C_CYAN%╔════════════════════════════════════════════════════════╗%C_RESET%
-echo  %C_CYAN%║%C_BOLD%%C_WHITE%            WinKit — Мастер установки ПО               %C_RESET%%C_CYAN%║%C_RESET%
+echo  %C_CYAN%║%C_BOLD%%C_WHITE%             WinKit — App Installer                    %C_RESET%%C_CYAN%║%C_RESET%
 echo  %C_CYAN%╚════════════════════════════════════════════════════════╝%C_RESET%
 echo.
 
-:: Вывод списка по категориям
+:: Display apps by category
 set "LAST_CAT="
 for /L %%i in (1,1,%TOTAL%) do (
     if not "!CAT_%%i!"=="!LAST_CAT!" (
@@ -100,7 +100,7 @@ for /L %%i in (1,1,%TOTAL%) do (
     )
 )
 
-:: Подсчёт выбранных
+:: Count selected
 set "SEL_COUNT=0"
 for /L %%i in (1,1,%TOTAL%) do (
     if "!SEL_%%i!"=="1" set /a SEL_COUNT+=1
@@ -108,43 +108,43 @@ for /L %%i in (1,1,%TOTAL%) do (
 
 echo.
 echo  %C_CYAN%────────────────────────────────────────────────────────%C_RESET%
-echo   %C_WHITE%Выбрано: %C_GREEN%!SEL_COUNT!%C_WHITE% из %TOTAL%%C_RESET%
+echo   %C_WHITE%Selected: %C_GREEN%!SEL_COUNT!%C_WHITE% of %TOTAL%%C_RESET%
 echo  %C_CYAN%────────────────────────────────────────────────────────%C_RESET%
 echo.
-echo   %C_WHITE%Введите номера через пробел %C_GRAY%(например: 1 3 5 7)%C_RESET%
-echo   %C_GREEN%A%C_WHITE% — выбрать все  %C_YELLOW%C%C_WHITE% — сбросить выбор%C_RESET%
-echo   %C_GREEN%D%C_WHITE% — начать установку  %C_RED%0%C_WHITE% — выход%C_RESET%
+echo   %C_WHITE%Enter numbers separated by spaces %C_GRAY%(e.g. 1 3 5 7)%C_RESET%
+echo   %C_GREEN%A%C_WHITE% — select all  %C_YELLOW%C%C_WHITE% — clear selection%C_RESET%
+echo   %C_GREEN%D%C_WHITE% — start install  %C_RED%0%C_WHITE% — exit%C_RESET%
 echo.
 set "input="
 set /p "input=  %C_CYAN%^> %C_RESET%"
 
-:: Пустой ввод
+:: Empty input
 if not defined input goto main_menu
 
-:: Выход
+:: Exit
 if /i "%input%"=="0" (
     echo.
-    echo  %C_GRAY%Выход...%C_RESET%
+    echo  %C_GRAY%Exiting...%C_RESET%
     timeout /t 1 >nul
     exit
 )
 
-:: Выбрать все
+:: Select all
 if /i "%input%"=="A" (
     for /L %%i in (1,1,%TOTAL%) do set "SEL_%%i=1"
     goto main_menu
 )
 
-:: Сбросить выбор
+:: Clear selection
 if /i "%input%"=="C" (
     for /L %%i in (1,1,%TOTAL%) do set "SEL_%%i=0"
     goto main_menu
 )
 
-:: Начать установку
+:: Start install
 if /i "%input%"=="D" goto confirm_phase
 
-:: Обработка номеров (переключение)
+:: Process numbers (toggle)
 for %%n in (%input%) do (
     set "VALID=0"
     for /L %%i in (1,1,%TOTAL%) do (
@@ -158,18 +158,18 @@ for %%n in (%input%) do (
         )
     )
     if "!VALID!"=="0" (
-        echo  %C_RED%  Неверный номер: %%n%C_RESET%
+        echo  %C_RED%  Invalid number: %%n%C_RESET%
         timeout /t 1 >nul
     )
 )
 goto main_menu
 
 :: ═══════════════════════════════════════════════════════════════
-::  ПОДТВЕРЖДЕНИЕ
+::  CONFIRMATION
 :: ═══════════════════════════════════════════════════════════════
 :confirm_phase
 
-:: Подсчёт выбранных
+:: Count selected
 set "SEL_COUNT=0"
 for /L %%i in (1,1,%TOTAL%) do (
     if "!SEL_%%i!"=="1" set /a SEL_COUNT+=1
@@ -177,7 +177,7 @@ for /L %%i in (1,1,%TOTAL%) do (
 
 if !SEL_COUNT! equ 0 (
     echo.
-    echo  %C_RED%Вы не выбрали ни одной программы!%C_RESET%
+    echo  %C_RED%No apps selected!%C_RESET%
     timeout /t 2 >nul
     goto main_menu
 )
@@ -185,10 +185,10 @@ if !SEL_COUNT! equ 0 (
 cls
 echo.
 echo  %C_CYAN%╔════════════════════════════════════════════════════════╗%C_RESET%
-echo  %C_CYAN%║%C_BOLD%%C_WHITE%              Подтверждение установки                  %C_RESET%%C_CYAN%║%C_RESET%
+echo  %C_CYAN%║%C_BOLD%%C_WHITE%              Confirm Installation                     %C_RESET%%C_CYAN%║%C_RESET%
 echo  %C_CYAN%╚════════════════════════════════════════════════════════╝%C_RESET%
 echo.
-echo   %C_GREEN%Будут установлены (!SEL_COUNT! шт.)::%C_RESET%
+echo   %C_GREEN%The following apps will be installed (!SEL_COUNT!):%C_RESET%
 echo.
 
 for /L %%i in (1,1,%TOTAL%) do (
@@ -202,9 +202,9 @@ echo  %C_CYAN%──────────────────────
 echo.
 
 :ask_confirm
-echo   %C_WHITE%1. Начать установку%C_RESET%
-echo   %C_WHITE%2. Вернуться к выбору%C_RESET%
-echo   %C_WHITE%3. Отмена и выход%C_RESET%
+echo   %C_WHITE%1. Start installation%C_RESET%
+echo   %C_WHITE%2. Go back to selection%C_RESET%
+echo   %C_WHITE%3. Cancel and exit%C_RESET%
 echo.
 set "input="
 set /p "input=  %C_CYAN%^> %C_RESET%"
@@ -213,22 +213,22 @@ if "%input%"=="1" goto install_phase
 if "%input%"=="2" goto main_menu
 if "%input%"=="3" (
     echo.
-    echo  %C_GRAY%Установка отменена. Выход...%C_RESET%
+    echo  %C_GRAY%Installation cancelled. Exiting...%C_RESET%
     timeout /t 2 >nul
     exit
 )
 
-echo  %C_RED%  Неверный ввод. Повторите.%C_RESET%
+echo  %C_RED%  Invalid input. Try again.%C_RESET%
 goto ask_confirm
 
 :: ═══════════════════════════════════════════════════════════════
-::  УСТАНОВКА
+::  INSTALLATION
 :: ═══════════════════════════════════════════════════════════════
 :install_phase
 cls
 echo.
 echo  %C_CYAN%╔════════════════════════════════════════════════════════╗%C_RESET%
-echo  %C_CYAN%║%C_BOLD%%C_WHITE%               Установка программ...                  %C_RESET%%C_CYAN%║%C_RESET%
+echo  %C_CYAN%║%C_BOLD%%C_WHITE%              Installing apps...                       %C_RESET%%C_CYAN%║%C_RESET%
 echo  %C_CYAN%╚════════════════════════════════════════════════════════╝%C_RESET%
 echo.
 
@@ -240,8 +240,8 @@ for /L %%i in (1,1,%TOTAL%) do (
     if "!SEL_%%i!"=="1" (
         set /a DONE+=1
         echo  %C_CYAN%────────────────────────────────────────────────────────%C_RESET%
-        echo   %C_WHITE%[!DONE!/!SEL_COUNT!] Установка: %C_YELLOW%!NAME_%%i!%C_RESET%
-        echo   %C_GRAY%Пакет: !ID_%%i!%C_RESET%
+        echo   %C_WHITE%[!DONE!/!SEL_COUNT!] Installing: %C_YELLOW%!NAME_%%i!%C_RESET%
+        echo   %C_GRAY%Package: !ID_%%i!%C_RESET%
         echo  %C_CYAN%────────────────────────────────────────────────────────%C_RESET%
         echo.
 
@@ -249,25 +249,25 @@ for /L %%i in (1,1,%TOTAL%) do (
 
         if !errorlevel! equ 0 (
             set /a OK+=1
-            set "RES_%%i=%C_GREEN%✓ Успешно%C_RESET%"
+            set "RES_%%i=%C_GREEN%✓ Success%C_RESET%"
             echo.
-            echo   %C_GREEN%✓ !NAME_%%i! — установлено успешно%C_RESET%
+            echo   %C_GREEN%✓ !NAME_%%i! — installed successfully%C_RESET%
         ) else (
             set /a FAIL+=1
-            set "RES_%%i=%C_RED%✗ Ошибка%C_RESET%"
+            set "RES_%%i=%C_RED%✗ Failed%C_RESET%"
             echo.
-            echo   %C_RED%✗ !NAME_%%i! — ошибка установки%C_RESET%
+            echo   %C_RED%✗ !NAME_%%i! — installation failed%C_RESET%
         )
         echo.
     )
 )
 
 :: ═══════════════════════════════════════════════════════════════
-::  ИТОГИ
+::  RESULTS
 :: ═══════════════════════════════════════════════════════════════
 echo.
 echo  %C_CYAN%╔════════════════════════════════════════════════════════╗%C_RESET%
-echo  %C_CYAN%║%C_BOLD%%C_WHITE%                 Результаты установки                  %C_RESET%%C_CYAN%║%C_RESET%
+echo  %C_CYAN%║%C_BOLD%%C_WHITE%              Installation Results                     %C_RESET%%C_CYAN%║%C_RESET%
 echo  %C_CYAN%╚════════════════════════════════════════════════════════╝%C_RESET%
 echo.
 
@@ -279,9 +279,9 @@ for /L %%i in (1,1,%TOTAL%) do (
 
 echo.
 echo  %C_CYAN%────────────────────────────────────────────────────────%C_RESET%
-echo   %C_GREEN%Успешно: !OK!%C_RESET%  │  %C_RED%Ошибки: !FAIL!%C_RESET%  │  %C_WHITE%Всего: !SEL_COUNT!%C_RESET%
+echo   %C_GREEN%Success: !OK!%C_RESET%  │  %C_RED%Failed: !FAIL!%C_RESET%  │  %C_WHITE%Total: !SEL_COUNT!%C_RESET%
 echo  %C_CYAN%────────────────────────────────────────────────────────%C_RESET%
 echo.
-echo  Нажмите любую клавишу для выхода...
+echo  Press any key to exit...
 pause >nul
 exit
