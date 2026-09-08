@@ -22,28 +22,13 @@
  ╚════════════════════════════════════════════════════════╝
 
    [Browsers]
-     1. [■] Google Chrome        3. [ ] Brave Browser
+   > 1. [■] Google Chrome
      2. [ ] Mozilla Firefox
+     3. [ ] Brave Browser
+     4. [ ] Opera GX
+     5. [ ] Vivaldi
 
-   [Development]
-     4. [■] Visual Studio Code   7. [ ] Node.js LTS
-     5. [ ] Git                  8. [ ] Notepad++
-     6. [ ] Python 3
-
-   [Gaming & Social]
-     9. [■] Steam               11. [ ] Telegram
-    10. [ ] Discord
-
-   [Media]
-    12. [ ] VLC Media Player    14. [ ] OBS Studio
-    13. [ ] Spotify
-
-   [Utilities]
-    15. [■] 7-Zip               18. [ ] MSI Afterburner
-    16. [ ] WinRAR              19. [ ] PowerToys
-    17. [ ] qBittorrent         20. [ ] Everything Search
-
-   Selected: 4 of 20
+   Selected: 4 of 30
    > _
 ```
 
@@ -71,38 +56,37 @@ setup.bat
 
 | Feature | Description |
 |---------|-------------|
-| 🖥 **Single screen** | All 20 apps displayed at once — no stepping through prompts |
-| ✅ **Multi-select** | Type `1 3 5 7` to pick multiple apps in one line |
+| 🖥 **Interactive UI** | Navigate with arrow keys, select with spacebar |
 | 📦 **Select all** | Press `A` to grab everything |
-| 🔄 **Toggle** | Enter a number again to deselect it |
+| 🔄 **Toggle** | Select multiple apps across different categories |
 | 📊 **Progress** | Live counter `[2/5]` during installation |
 | 📋 **Report** | Summary with ✓ success / ✗ failure for each app |
 | 🎨 **Categories** | Apps organized into 5 categories |
 | 🛡 **Auto-elevate** | Requests admin rights automatically |
 | ⚡ **One-liner** | Install via `irm ... \| iex` — no git needed |
 
-## 📦 Available Apps (20)
+## 📦 Available Apps (30)
 
 | Category | Apps |
 |----------|------|
-| 🌐 **Browsers** | Google Chrome, Mozilla Firefox, Brave |
-| 💻 **Development** | VS Code, Git, Python 3, Node.js LTS, Notepad++ |
-| 🎮 **Gaming & Social** | Steam, Discord, Telegram |
-| 🎬 **Media** | VLC, Spotify, OBS Studio |
-| 🛠 **Utilities** | 7-Zip, WinRAR, qBittorrent, MSI Afterburner, PowerToys, Everything Search |
+| 🌐 **Browsers** | Google Chrome, Mozilla Firefox, Brave, Opera GX, Vivaldi |
+| 💻 **Development** | VS Code, Git, Python 3, Node.js LTS, Notepad++, Windows Terminal, Docker Desktop |
+| 🎮 **Gaming / Social** | Steam, Discord, Telegram, Epic Games, GOG Galaxy |
+| 🎬 **Media** | VLC, Spotify, OBS Studio, iTunes, K-Lite Codec Pack |
+| 🛠 **Utilities** | 7-Zip, WinRAR, qBittorrent, MSI Afterburner, PowerToys, Everything, Rufus, ShareX |
 
-> 💡 **Want to add your own apps?** Edit `setup.bat` — add `NAME_`, `ID_`, `CAT_` lines and bump `TOTAL`.
+> 💡 **Want to add your own apps?** Edit `setup.bat` — add `Name`, `Id`, and `Cat` into the `$apps` array.
 
 ## ⌨️ Controls
 
 | Key | Action |
 |-----|--------|
-| `1`-`20` | Toggle an app on/off |
-| `1 3 5` | Select multiple at once |
-| `A` | Select all |
-| `C` | Clear selection |
-| `D` | Start installation |
-| `0` | Exit |
+| `↑` / `↓` | Navigate apps |
+| `←` / `→` | Switch categories |
+| `Space` | Select / Deselect app |
+| `A` / `C` | Select all / Clear selection |
+| `Enter` | Start installation |
+| `Esc` | Exit |
 
 ## 📋 Requirements
 

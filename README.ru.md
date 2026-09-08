@@ -22,28 +22,13 @@
  ╚════════════════════════════════════════════════════════╝
 
    [Browsers]
-     1. [■] Google Chrome        3. [ ] Brave Browser
+   > 1. [■] Google Chrome
      2. [ ] Mozilla Firefox
+     3. [ ] Brave Browser
+     4. [ ] Opera GX
+     5. [ ] Vivaldi
 
-   [Development]
-     4. [■] Visual Studio Code   7. [ ] Node.js LTS
-     5. [ ] Git                  8. [ ] Notepad++
-     6. [ ] Python 3
-
-   [Gaming & Social]
-     9. [■] Steam               11. [ ] Telegram
-    10. [ ] Discord
-
-   [Media]
-    12. [ ] VLC Media Player    14. [ ] OBS Studio
-    13. [ ] Spotify
-
-   [Utilities]
-    15. [■] 7-Zip               18. [ ] MSI Afterburner
-    16. [ ] WinRAR              19. [ ] PowerToys
-    17. [ ] qBittorrent         20. [ ] Everything Search
-
-   Selected: 4 of 20
+   Selected: 4 of 30
    > _
 ```
 
@@ -71,38 +56,37 @@ setup.bat
 
 | Функция | Описание |
 |---------|----------|
-| 🖥 **Единый экран** | Все 20 приложений на одном экране |
-| ✅ **Мульти-выбор** | Введите `1 3 5 7` чтобы выбрать несколько сразу |
+| 🖥 **Интерактивный интерфейс** | Навигация стрелочками, выбор пробелом |
 | 📦 **Выбрать все** | Нажмите `A` — и всё выбрано |
-| 🔄 **Переключение** | Повторный ввод номера снимает выбор |
+| 🔄 **Переключение** | Выбирайте разные приложения по разным категориям |
 | 📊 **Прогресс** | Счётчик `[2/5]` во время установки |
 | 📋 **Отчёт** | Итоговая таблица: ✓ успех / ✗ ошибка |
 | 🎨 **Категории** | 5 категорий для удобной навигации |
 | 🛡 **Авто-права** | Автоматический запрос прав администратора |
 | ⚡ **Одна команда** | Установка через `irm ... \| iex` — без git |
 
-## 📦 Доступные приложения (20)
+## 📦 Доступные приложения (30)
 
 | Категория | Приложения |
 |-----------|-----------|
-| 🌐 **Браузеры** | Google Chrome, Mozilla Firefox, Brave |
-| 💻 **Разработка** | VS Code, Git, Python 3, Node.js LTS, Notepad++ |
-| 🎮 **Игры и общение** | Steam, Discord, Telegram |
-| 🎬 **Медиа** | VLC, Spotify, OBS Studio |
-| 🛠 **Утилиты** | 7-Zip, WinRAR, qBittorrent, MSI Afterburner, PowerToys, Everything Search |
+| 🌐 **Браузеры** | Google Chrome, Mozilla Firefox, Brave, Opera GX, Vivaldi |
+| 💻 **Разработка** | VS Code, Git, Python 3, Node.js LTS, Notepad++, Windows Terminal, Docker Desktop |
+| 🎮 **Игры и общение** | Steam, Discord, Telegram, Epic Games, GOG Galaxy |
+| 🎬 **Медиа** | VLC, Spotify, OBS Studio, iTunes, K-Lite Codec Pack |
+| 🛠 **Утилиты** | 7-Zip, WinRAR, qBittorrent, MSI Afterburner, PowerToys, Everything Search, Rufus, ShareX |
 
-> 💡 **Хотите добавить свои приложения?** Отредактируйте `setup.bat` — добавьте `NAME_`, `ID_`, `CAT_` и увеличьте `TOTAL`.
+> 💡 **Хотите добавить свои приложения?** Отредактируйте `setup.bat` — добавьте `Name`, `Id`, `Cat` в массив `$apps`.
 
 ## ⌨️ Управление
 
 | Клавиша | Действие |
 |---------|----------|
-| `1`-`20` | Выбрать/снять приложение |
-| `1 3 5` | Выбрать несколько сразу |
-| `A` | Выбрать все |
-| `C` | Сбросить выбор |
-| `D` | Начать установку |
-| `0` | Выход |
+| `↑` / `↓` | Перемещение по списку |
+| `←` / `→` | Переключение между категориями |
+| `Пробел` | Выбрать / Отменить выбор |
+| `A` / `C` | Выбрать все / Очистить выбор |
+| `Enter` | Начать установку |
+| `Esc` | Выход |
 
 ## 📋 Требования
 

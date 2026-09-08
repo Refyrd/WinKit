@@ -1,6 +1,4 @@
 @echo off
-chcp 65001 >nul
-
 :: ===============================================================
 ::  WinKit - quick app installer powered by WinGet
 ::  GitHub: https://github.com/Refyrd/WinKit
@@ -33,26 +31,45 @@ $Host.UI.RawUI.WindowTitle = "WinKit - App Installer"
 
 # --- App definitions ---
 $apps = @(
+    # Cat 0: Browsers
     @{Name="Google Chrome";      Id="Google.Chrome";              Cat=0; Sel=$false},
     @{Name="Mozilla Firefox";    Id="Mozilla.Firefox";            Cat=0; Sel=$false},
     @{Name="Brave Browser";      Id="Brave.Brave";               Cat=0; Sel=$false},
+    @{Name="Opera GX";           Id="Opera.OperaGX";              Cat=0; Sel=$false},
+    @{Name="Vivaldi";            Id="VivaldiTechnologies.Vivaldi";Cat=0; Sel=$false},
+
+    # Cat 1: Development
     @{Name="Visual Studio Code"; Id="Microsoft.VisualStudioCode"; Cat=1; Sel=$false},
     @{Name="Git";                Id="Git.Git";                    Cat=1; Sel=$false},
     @{Name="Python 3";           Id="Python.Python.3.12";         Cat=1; Sel=$false},
     @{Name="Node.js LTS";        Id="OpenJS.NodeJS.LTS";          Cat=1; Sel=$false},
     @{Name="Notepad++";          Id="Notepad++.Notepad++";        Cat=1; Sel=$false},
+    @{Name="Windows Terminal";   Id="Microsoft.WindowsTerminal";  Cat=1; Sel=$false},
+    @{Name="Docker Desktop";     Id="Docker.DockerDesktop";       Cat=1; Sel=$false},
+
+    # Cat 2: Gaming / Social
     @{Name="Steam";              Id="Valve.Steam";                Cat=2; Sel=$false},
     @{Name="Discord";            Id="Discord.Discord";            Cat=2; Sel=$false},
     @{Name="Telegram";           Id="Telegram.TelegramDesktop";   Cat=2; Sel=$false},
+    @{Name="Epic Games";         Id="EpicGames.EpicGamesLauncher";Cat=2; Sel=$false},
+    @{Name="GOG Galaxy";         Id="GOG.Galaxy";                 Cat=2; Sel=$false},
+
+    # Cat 3: Media
     @{Name="VLC Media Player";   Id="VideoLAN.VLC";               Cat=3; Sel=$false},
     @{Name="Spotify";            Id="Spotify.Spotify";            Cat=3; Sel=$false},
     @{Name="OBS Studio";         Id="OBSProject.OBSStudio";       Cat=3; Sel=$false},
+    @{Name="iTunes";             Id="Apple.iTunes";               Cat=3; Sel=$false},
+    @{Name="K-Lite Codec Pack";  Id="CodecGuide.K-LiteCodecPack.Standard"; Cat=3; Sel=$false},
+
+    # Cat 4: Utilities
     @{Name="7-Zip";              Id="7zip.7zip";                  Cat=4; Sel=$false},
     @{Name="WinRAR";             Id="RARLab.WinRAR";              Cat=4; Sel=$false},
     @{Name="qBittorrent";        Id="qBittorrent.qBittorrent";    Cat=4; Sel=$false},
     @{Name="MSI Afterburner";    Id="Guru3D.Afterburner";         Cat=4; Sel=$false},
     @{Name="PowerToys";          Id="Microsoft.PowerToys";        Cat=4; Sel=$false},
-    @{Name="Everything Search";  Id="voidtools.Everything";       Cat=4; Sel=$false}
+    @{Name="Everything Search";  Id="voidtools.Everything";       Cat=4; Sel=$false},
+    @{Name="Rufus";              Id="Rufus.Rufus";                Cat=4; Sel=$false},
+    @{Name="ShareX";             Id="ShareX.ShareX";              Cat=4; Sel=$false}
 )
 
 $cats = @("Browsers", "Development", "Gaming / Social", "Media", "Utilities")
@@ -112,8 +129,10 @@ function Draw {
     }
 
     # Pad empty lines to keep layout stable
-    $empty = 7 - $items.Count
-    for ($e = 0; $e -lt $empty; $e++) { Write-Host "" }
+    $empty = 8 - $items.Count
+    if ($empty -gt 0) {
+        for ($e = 0; $e -lt $empty; $e++) { Write-Host "" }
+    }
 
     Write-Host ""
     Write-Host "  ------------------------------------------------------" -Fore Cyan
@@ -191,7 +210,6 @@ while ($true) {
 }
 
 # === INSTALL ===
-
 [Console]::Clear()
 Write-Host ""
 Write-Host "  ==========================================================" -Fore Cyan
