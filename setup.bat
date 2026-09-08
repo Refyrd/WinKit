@@ -6,7 +6,7 @@ chcp 65001 >nul
 ::  GitHub: https://github.com/Refyrd/WinKit
 :: ===============================================================
 
-:: Check for administrator privileges
+:: UAC elevation
 net session >nul 2>&1
 if %errorlevel% neq 0 (
     echo Set UAC = CreateObject^("Shell.Application"^) > "%temp%\getadmin.vbs"
@@ -15,261 +15,255 @@ if %errorlevel% neq 0 (
     del "%temp%\getadmin.vbs"
     exit /b
 )
-
 if "%1"=="admin" cd /d "%~dp0"
 
 setlocal EnableDelayedExpansion
-title WinKit - App Installer
-mode con cols=58 lines=25
 
-:: --- Colors ---
-for /F %%a in ('echo prompt $E ^| cmd') do set "ESC=%%a"
-set "R=%ESC%[0m"
-set "CC=%ESC%[96m"
-set "CG=%ESC%[92m"
-set "CY=%ESC%[93m"
-set "CR=%ESC%[91m"
-set "CD=%ESC%[90m"
-set "CW=%ESC%[97m"
-set "CB=%ESC%[1m"
+:: Extract embedded PowerShell and run it
+set "_ps=%temp%\winkit_menu.ps1"
+for /f "delims=:" %%a in ('findstr /n "#POWERSHELL_BEGIN" "%~f0"') do set "_ln=%%a"
+more +!_ln! "%~f0" > "!_ps!"
+powershell -NoProfile -ExecutionPolicy Bypass -File "!_ps!"
+del "!_ps!" >nul 2>&1
+endlocal
+exit /b
 
-:: --- App List ---
-set "TOTAL=20"
-set "PAGES=5"
+#POWERSHELL_BEGIN
+$Host.UI.RawUI.WindowTitle = "WinKit - App Installer"
+try {
+    $buf = $Host.UI.RawUI.BufferSize
+    $buf.Width = 60; $buf.Height = 300
+    $Host.UI.RawUI.BufferSize = $buf
+    $win = $Host.UI.RawUI.WindowSize
+    $win.Width = 60; $win.Height = 26
+    $Host.UI.RawUI.WindowSize = $win
+} catch {}
 
-set "N1=Google Chrome"       & set "I1=Google.Chrome"              & set "P1=1"
-set "N2=Mozilla Firefox"     & set "I2=Mozilla.Firefox"            & set "P2=1"
-set "N3=Brave Browser"       & set "I3=Brave.Brave"               & set "P3=1"
-set "N4=Visual Studio Code"  & set "I4=Microsoft.VisualStudioCode" & set "P4=2"
-set "N5=Git"                 & set "I5=Git.Git"                    & set "P5=2"
-set "N6=Python 3"            & set "I6=Python.Python.3.12"         & set "P6=2"
-set "N7=Node.js LTS"         & set "I7=OpenJS.NodeJS.LTS"          & set "P7=2"
-set "N8=Notepad++"           & set "I8=Notepad++.Notepad++"        & set "P8=2"
-set "N9=Steam"               & set "I9=Valve.Steam"                & set "P9=3"
-set "N10=Discord"            & set "I10=Discord.Discord"           & set "P10=3"
-set "N11=Telegram"           & set "I11=Telegram.TelegramDesktop"  & set "P11=3"
-set "N12=VLC Media Player"   & set "I12=VideoLAN.VLC"              & set "P12=4"
-set "N13=Spotify"            & set "I13=Spotify.Spotify"           & set "P13=4"
-set "N14=OBS Studio"         & set "I14=OBSProject.OBSStudio"      & set "P14=4"
-set "N15=7-Zip"              & set "I15=7zip.7zip"                 & set "P15=5"
-set "N16=WinRAR"             & set "I16=RARLab.WinRAR"             & set "P16=5"
-set "N17=qBittorrent"        & set "I17=qBittorrent.qBittorrent"   & set "P17=5"
-set "N18=MSI Afterburner"    & set "I18=Guru3D.Afterburner"        & set "P18=5"
-set "N19=PowerToys"          & set "I19=Microsoft.PowerToys"       & set "P19=5"
-set "N20=Everything Search"  & set "I20=voidtools.Everything"      & set "P20=5"
-
-set "CAT1=Browsers"
-set "CAT2=Development"
-set "CAT3=Gaming / Social"
-set "CAT4=Media"
-set "CAT5=Utilities"
-
-:: --- Initialize ---
-for /L %%i in (1,1,%TOTAL%) do set "S%%i=0"
-set "CUR_PAGE=1"
-
-:: ===============================================================
-::  MAIN MENU
-:: ===============================================================
-:menu
-cls
-echo.
-echo  %CC%========================================================%R%
-echo  %CC%#%CB%%CW%           WinKit - App Installer                  %R%%CC%#%R%
-echo  %CC%========================================================%R%
-echo.
-
-:: --- Page indicator ---
-set "_nav="
-for /L %%p in (1,1,%PAGES%) do (
-    if %%p==%CUR_PAGE% (
-        set "_nav=!_nav! %CB%%CW%[%%p]%R%"
-    ) else (
-        set "_nav=!_nav! %CD%%%p%R%"
-    )
-)
-echo   %CC%^<%R%!_nav! %CC%^>%R%
-echo.
-
-:: --- Category title ---
-call :show_cat_title
-echo.
-
-:: --- Show items for current page ---
-for /L %%i in (1,1,%TOTAL%) do (
-    if "!P%%i!"=="%CUR_PAGE%" call :print_item %%i
+# --- App definitions ---
+$apps = @(
+    @{Name="Google Chrome";      Id="Google.Chrome";              Cat=0; Sel=$false},
+    @{Name="Mozilla Firefox";    Id="Mozilla.Firefox";            Cat=0; Sel=$false},
+    @{Name="Brave Browser";      Id="Brave.Brave";               Cat=0; Sel=$false},
+    @{Name="Visual Studio Code"; Id="Microsoft.VisualStudioCode"; Cat=1; Sel=$false},
+    @{Name="Git";                Id="Git.Git";                    Cat=1; Sel=$false},
+    @{Name="Python 3";           Id="Python.Python.3.12";         Cat=1; Sel=$false},
+    @{Name="Node.js LTS";        Id="OpenJS.NodeJS.LTS";          Cat=1; Sel=$false},
+    @{Name="Notepad++";          Id="Notepad++.Notepad++";        Cat=1; Sel=$false},
+    @{Name="Steam";              Id="Valve.Steam";                Cat=2; Sel=$false},
+    @{Name="Discord";            Id="Discord.Discord";            Cat=2; Sel=$false},
+    @{Name="Telegram";           Id="Telegram.TelegramDesktop";   Cat=2; Sel=$false},
+    @{Name="VLC Media Player";   Id="VideoLAN.VLC";               Cat=3; Sel=$false},
+    @{Name="Spotify";            Id="Spotify.Spotify";            Cat=3; Sel=$false},
+    @{Name="OBS Studio";         Id="OBSProject.OBSStudio";       Cat=3; Sel=$false},
+    @{Name="7-Zip";              Id="7zip.7zip";                  Cat=4; Sel=$false},
+    @{Name="WinRAR";             Id="RARLab.WinRAR";              Cat=4; Sel=$false},
+    @{Name="qBittorrent";        Id="qBittorrent.qBittorrent";    Cat=4; Sel=$false},
+    @{Name="MSI Afterburner";    Id="Guru3D.Afterburner";         Cat=4; Sel=$false},
+    @{Name="PowerToys";          Id="Microsoft.PowerToys";        Cat=4; Sel=$false},
+    @{Name="Everything Search";  Id="voidtools.Everything";       Cat=4; Sel=$false}
 )
 
-:: --- Count selected ---
-set "SC=0"
-for /L %%i in (1,1,%TOTAL%) do if "!S%%i!"=="1" set /a SC+=1
+$cats = @("Browsers", "Development", "Gaming / Social", "Media", "Utilities")
+$page = 0
+$cur = 0
 
-echo.
-echo  %CC%--------------------------------------------------------%R%
-echo   %CW%Selected: %CG%!SC!%CW% of %TOTAL%%R%
-echo  %CC%--------------------------------------------------------%R%
-echo.
-echo   %CD%^< ^>%CW% pages  %CD%nums%CW% toggle  %CG%A%CW% all  %CY%C%CW% clear%R%
-echo   %CG%D%CW% install  %CR%0%CW% exit%R%
-echo.
-set "input="
-set /p "input=  %CC%^> %R%"
+function Get-Items($p) {
+    $r = @()
+    for ($i = 0; $i -lt $apps.Count; $i++) {
+        if ($apps[$i].Cat -eq $p) { $r += $i }
+    }
+    return $r
+}
 
-if not defined input goto menu
-if /i "!input!"=="0" exit
-if /i "!input!"=="D" goto confirm
+function Draw {
+    [Console]::Clear()
+    $sc = ($apps | Where-Object { $_.Sel }).Count
+    $items = Get-Items $page
 
-:: --- Page navigation ---
-if "!input!"=="." goto next_page
-if "!input!"==">" goto next_page
-if "!input!"=="," goto prev_page
-if "!input!"=="<" goto prev_page
+    Write-Host ""
+    Write-Host "  ======================================================" -Fore Cyan
+    Write-Host "  |" -Fore Cyan -NoNewline
+    Write-Host "           WinKit - App Installer                " -Fore White -NoNewline
+    Write-Host "|" -Fore Cyan
+    Write-Host "  ======================================================" -Fore Cyan
+    Write-Host ""
 
-:: --- Select all ---
-if /i "!input!"=="A" (
-    for /L %%i in (1,1,%TOTAL%) do set "S%%i=1"
-    goto menu
-)
+    # Page tabs
+    Write-Host "   " -NoNewline
+    for ($p = 0; $p -lt $cats.Count; $p++) {
+        if ($p -eq $page) {
+            Write-Host " [$($p+1)]" -Fore White -NoNewline
+        } else {
+            Write-Host "  $($p+1) " -Fore DarkGray -NoNewline
+        }
+    }
+    Write-Host ""
+    Write-Host ""
+    Write-Host "   $($cats[$page])" -Fore Yellow
+    Write-Host ""
 
-:: --- Clear ---
-if /i "!input!"=="C" (
-    for /L %%i in (1,1,%TOTAL%) do set "S%%i=0"
-    goto menu
-)
+    # Items
+    for ($j = 0; $j -lt $items.Count; $j++) {
+        $idx = $items[$j]
+        $a = $apps[$idx]
+        $n = $idx + 1
+        $pad = if ($n -lt 10) {"  "} else {" "}
+        $check = if ($a.Sel) {"[x]"} else {"[ ]"}
+        $arrow = if ($j -eq $cur) {">"} else {" "}
 
-:: --- Toggle items ---
-for %%n in (!input!) do (
-    set "_ok=0"
-    for /L %%i in (1,1,%TOTAL%) do (
-        if "%%n"=="%%i" (
-            set "_ok=1"
-            if "!S%%i!"=="0" (set "S%%i=1") else (set "S%%i=0")
-        )
-    )
-)
-goto menu
+        if ($j -eq $cur) {
+            $color = if ($a.Sel) {"Green"} else {"White"}
+        } else {
+            $color = if ($a.Sel) {"Green"} else {"Gray"}
+        }
+        Write-Host "   $arrow $pad$n. $check $($a.Name)" -Fore $color
+    }
 
-:next_page
-if %CUR_PAGE% lss %PAGES% set /a CUR_PAGE+=1
-goto menu
+    # Pad empty lines to keep layout stable
+    $empty = 7 - $items.Count
+    for ($e = 0; $e -lt $empty; $e++) { Write-Host "" }
 
-:prev_page
-if %CUR_PAGE% gtr 1 set /a CUR_PAGE-=1
-goto menu
+    Write-Host ""
+    Write-Host "  ------------------------------------------------------" -Fore Cyan
+    Write-Host "   Selected: " -Fore White -NoNewline
+    Write-Host "$sc" -Fore Green -NoNewline
+    Write-Host " of $($apps.Count)" -Fore White
+    Write-Host "  ------------------------------------------------------" -Fore Cyan
+    Write-Host ""
+    Write-Host "   " -NoNewline
+    Write-Host "[<] [>]" -Fore Cyan -NoNewline
+    Write-Host " pages  " -Fore DarkGray -NoNewline
+    Write-Host "[Space]" -Fore Cyan -NoNewline
+    Write-Host " toggle  " -Fore DarkGray -NoNewline
+    Write-Host "[A]" -Fore Green -NoNewline
+    Write-Host " all" -Fore DarkGray
+    Write-Host "   " -NoNewline
+    Write-Host "[Enter]" -Fore Green -NoNewline
+    Write-Host " install  " -Fore DarkGray -NoNewline
+    Write-Host "[C]" -Fore Yellow -NoNewline
+    Write-Host " clear   " -Fore DarkGray -NoNewline
+    Write-Host "[Esc]" -Fore Red -NoNewline
+    Write-Host " exit" -Fore DarkGray
+}
 
-:: ===============================================================
-::  CONFIRM
-:: ===============================================================
-:confirm
-set "SC=0"
-for /L %%i in (1,1,%TOTAL%) do if "!S%%i!"=="1" set /a SC+=1
+# === MAIN LOOP ===
+$doInstall = $false
+while (-not $doInstall) {
+    $items = Get-Items $page
+    if ($cur -ge $items.Count) { $cur = [Math]::Max(0, $items.Count - 1) }
+    Draw
 
-if !SC! equ 0 (
-    echo  %CR%No apps selected!%R%
-    timeout /t 2 >nul
-    goto menu
-)
+    $key = [Console]::ReadKey($true)
+    switch ($key.Key) {
+        "LeftArrow"  { if ($page -gt 0) { $page--; $cur = 0 } }
+        "RightArrow" { if ($page -lt ($cats.Count - 1)) { $page++; $cur = 0 } }
+        "UpArrow"    { if ($cur -gt 0) { $cur-- } }
+        "DownArrow"  { if ($cur -lt ($items.Count - 1)) { $cur++ } }
+        "Spacebar"   { if ($items.Count -gt 0) { $apps[$items[$cur]].Sel = -not $apps[$items[$cur]].Sel } }
+        "A"          { foreach ($a in $apps) { $a.Sel = $true } }
+        "C"          { foreach ($a in $apps) { $a.Sel = $false } }
+        "Escape"     { exit }
+        "Enter" {
+            $sel = $apps | Where-Object { $_.Sel }
+            if ($sel.Count -gt 0) { $doInstall = $true }
+        }
+    }
+}
 
-cls
-echo.
-echo  %CC%========================================================%R%
-echo  %CC%#%CB%%CW%            Confirm Installation                   %R%%CC%#%R%
-echo  %CC%========================================================%R%
-echo.
-echo   %CG%Will install !SC! app(s):%R%
-echo.
-for /L %%i in (1,1,%TOTAL%) do (
-    if "!S%%i!"=="1" echo     %CW%- !N%%i!  %CD%[!I%%i!]%R%
-)
-echo.
-echo  %CC%--------------------------------------------------------%R%
-echo.
-echo   %CW%1. Start   2. Go back   3. Exit%R%
-echo.
-set "input="
-set /p "input=  %CC%^> %R%"
+# === CONFIRM ===
+$sel = @($apps | Where-Object { $_.Sel })
 
-if "!input!"=="1" goto install
-if "!input!"=="2" goto menu
-if "!input!"=="3" exit
-echo  %CR%  Invalid input.%R%
-goto confirm
+[Console]::Clear()
+Write-Host ""
+Write-Host "  ======================================================" -Fore Cyan
+Write-Host "  |" -Fore Cyan -NoNewline
+Write-Host "            Confirm Installation                 " -Fore White -NoNewline
+Write-Host "|" -Fore Cyan
+Write-Host "  ======================================================" -Fore Cyan
+Write-Host ""
+Write-Host "   Will install $($sel.Count) app(s):" -Fore Green
+Write-Host ""
+foreach ($a in $sel) {
+    Write-Host "     - $($a.Name)" -Fore White -NoNewline
+    Write-Host "  [$($a.Id)]" -Fore DarkGray
+}
+Write-Host ""
+Write-Host "  ------------------------------------------------------" -Fore Cyan
+Write-Host ""
+Write-Host "   [Enter] Start  |  [Esc] Back" -Fore DarkGray
 
-:: ===============================================================
-::  INSTALL
-:: ===============================================================
-:install
-mode con cols=80 lines=30
-cls
-echo.
-echo  %CC%========================================================%R%
-echo  %CC%#%CB%%CW%            Installing apps...                     %R%%CC%#%R%
-echo  %CC%========================================================%R%
-echo.
+while ($true) {
+    $k = [Console]::ReadKey($true)
+    if ($k.Key -eq "Escape") { exit }
+    if ($k.Key -eq "Enter") { break }
+}
 
-set "DONE=0"
-set "OK=0"
-set "FAIL=0"
+# === INSTALL ===
+try {
+    $buf = $Host.UI.RawUI.BufferSize
+    $buf.Width = 80; $buf.Height = 1000
+    $Host.UI.RawUI.BufferSize = $buf
+    $win = $Host.UI.RawUI.WindowSize
+    $win.Width = 80; $win.Height = 30
+    $Host.UI.RawUI.WindowSize = $win
+} catch {}
 
-for /L %%i in (1,1,%TOTAL%) do (
-    if "!S%%i!"=="1" (
-        set /a DONE+=1
-        echo  %CC%--------------------------------------------------------%R%
-        echo   %CW%[!DONE!/!SC!] Installing: %CY%!N%%i!%R%
-        echo   %CD%Package: !I%%i!%R%
-        echo  %CC%--------------------------------------------------------%R%
-        echo.
-        winget install --id !I%%i! -e --source winget --accept-package-agreements --accept-source-agreements
-        call :check_result %%i
-        echo.
-    )
-)
+[Console]::Clear()
+Write-Host ""
+Write-Host "  ==========================================================" -Fore Cyan
+Write-Host "  |" -Fore Cyan -NoNewline
+Write-Host "              Installing apps...                       " -Fore White -NoNewline
+Write-Host "|" -Fore Cyan
+Write-Host "  ==========================================================" -Fore Cyan
+Write-Host ""
 
-:: ===============================================================
-::  RESULTS
-:: ===============================================================
-echo.
-echo  %CC%========================================================%R%
-echo  %CC%#%CB%%CW%            Installation Results                   %R%%CC%#%R%
-echo  %CC%========================================================%R%
-echo.
-for /L %%i in (1,1,%TOTAL%) do if "!S%%i!"=="1" echo     !RES%%i!
-echo.
-echo  %CC%--------------------------------------------------------%R%
-echo   %CG%OK: !OK!%R%  ^|  %CR%Failed: !FAIL!%R%  ^|  %CW%Total: !SC!%R%
-echo  %CC%--------------------------------------------------------%R%
-echo.
-echo  Press any key to exit...
-pause >nul
-exit
+$ok = 0; $fail = 0; $done = 0
+$results = @()
 
-:: ===============================================================
-::  SUBROUTINES
-:: ===============================================================
+foreach ($a in $sel) {
+    $done++
+    Write-Host "  ----------------------------------------------------------" -Fore Cyan
+    Write-Host "   [$done/$($sel.Count)] " -Fore White -NoNewline
+    Write-Host "$($a.Name)" -Fore Yellow
+    Write-Host "   Package: $($a.Id)" -Fore DarkGray
+    Write-Host "  ----------------------------------------------------------" -Fore Cyan
+    Write-Host ""
 
-:show_cat_title
-echo   %CY%[ !CAT%CUR_PAGE%! ]%R%
-goto :eof
+    winget install --id $a.Id -e --source winget --accept-package-agreements --accept-source-agreements
 
-:print_item
-set "_i=%1"
-set "_pad=  "
-if %_i% geq 10 set "_pad= "
-if "!S%_i%!"=="1" (
-    echo     %CG%%_pad%%_i%. [x] !N%_i%!%R%
-) else (
-    echo      %_pad%%_i%. [ ] !N%_i%!
-)
-goto :eof
+    if ($LASTEXITCODE -eq 0) {
+        $ok++
+        Write-Host ""
+        Write-Host "   [OK] $($a.Name)" -Fore Green
+        $results += @{S="OK"; N=$a.Name}
+    } else {
+        $fail++
+        Write-Host ""
+        Write-Host "   [FAIL] $($a.Name)" -Fore Red
+        $results += @{S="FAIL"; N=$a.Name}
+    }
+    Write-Host ""
+}
 
-:check_result
-if !errorlevel! equ 0 (
-    set /a OK+=1
-    set "RES%1=  %CG%[OK]%R%  !N%1!"
-    echo   %CG%OK: !N%1!%R%
-) else (
-    set /a FAIL+=1
-    set "RES%1=  %CR%[FAIL]%R%  !N%1!"
-    echo   %CR%FAIL: !N%1!%R%
-)
-goto :eof
+# === RESULTS ===
+Write-Host ""
+Write-Host "  ==========================================================" -Fore Cyan
+Write-Host "  |" -Fore Cyan -NoNewline
+Write-Host "              Installation Results                     " -Fore White -NoNewline
+Write-Host "|" -Fore Cyan
+Write-Host "  ==========================================================" -Fore Cyan
+Write-Host ""
+foreach ($r in $results) {
+    if ($r.S -eq "OK") {
+        Write-Host "     [OK]   $($r.N)" -Fore Green
+    } else {
+        Write-Host "     [FAIL] $($r.N)" -Fore Red
+    }
+}
+Write-Host ""
+Write-Host "  ----------------------------------------------------------" -Fore Cyan
+Write-Host "   OK: $ok  |  Failed: $fail  |  Total: $($sel.Count)" -Fore White
+Write-Host "  ----------------------------------------------------------" -Fore Cyan
+Write-Host ""
+Write-Host "  Press any key to exit..."
+[Console]::ReadKey($true) | Out-Null
