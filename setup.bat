@@ -34,8 +34,10 @@ set "C_BOLD=%ESC%[1m"
 
 :: ─── App List ───
 :: Format: NAME_N=Display name | ID_N=WinGet ID | CAT_N=Category
-set "TOTAL=9"
+:: To add a new app: add NAME_, ID_, CAT_ lines and increase TOTAL
+set "TOTAL=20"
 
+:: ── Browsers ──
 set "NAME_1=Google Chrome"
 set "ID_1=Google.Chrome"
 set "CAT_1=Browsers"
@@ -44,33 +46,81 @@ set "NAME_2=Mozilla Firefox"
 set "ID_2=Mozilla.Firefox"
 set "CAT_2=Browsers"
 
-set "NAME_3=Visual Studio Code"
-set "ID_3=Microsoft.VisualStudioCode"
-set "CAT_3=Development"
+set "NAME_3=Brave Browser"
+set "ID_3=Brave.Brave"
+set "CAT_3=Browsers"
 
-set "NAME_4=Steam"
-set "ID_4=Valve.Steam"
-set "CAT_4=Gaming ^& Social"
+:: ── Development ──
+set "NAME_4=Visual Studio Code"
+set "ID_4=Microsoft.VisualStudioCode"
+set "CAT_4=Development"
 
-set "NAME_5=Discord"
-set "ID_5=Discord.Discord"
-set "CAT_5=Gaming ^& Social"
+set "NAME_5=Git"
+set "ID_5=Git.Git"
+set "CAT_5=Development"
 
-set "NAME_6=VLC Media Player"
-set "ID_6=VideoLAN.VLC"
-set "CAT_6=Media ^& Utilities"
+set "NAME_6=Python 3"
+set "ID_6=Python.Python.3.12"
+set "CAT_6=Development"
 
-set "NAME_7=7-Zip"
-set "ID_7=7zip.7zip"
-set "CAT_7=Media ^& Utilities"
+set "NAME_7=Node.js LTS"
+set "ID_7=OpenJS.NodeJS.LTS"
+set "CAT_7=Development"
 
-set "NAME_8=Happ"
-set "ID_8=Happ.Happ"
-set "CAT_8=Media ^& Utilities"
+set "NAME_8=Notepad++"
+set "ID_8=Notepad++.Notepad++"
+set "CAT_8=Development"
 
-set "NAME_9=MSI Afterburner"
-set "ID_9=Guru3D.Afterburner"
-set "CAT_9=Media ^& Utilities"
+:: ── Gaming ^& Social ──
+set "NAME_9=Steam"
+set "ID_9=Valve.Steam"
+set "CAT_9=Gaming ^& Social"
+
+set "NAME_10=Discord"
+set "ID_10=Discord.Discord"
+set "CAT_10=Gaming ^& Social"
+
+set "NAME_11=Telegram"
+set "ID_11=Telegram.TelegramDesktop"
+set "CAT_11=Gaming ^& Social"
+
+:: ── Media ──
+set "NAME_12=VLC Media Player"
+set "ID_12=VideoLAN.VLC"
+set "CAT_12=Media"
+
+set "NAME_13=Spotify"
+set "ID_13=Spotify.Spotify"
+set "CAT_13=Media"
+
+set "NAME_14=OBS Studio"
+set "ID_14=OBSProject.OBSStudio"
+set "CAT_14=Media"
+
+:: ── Utilities ──
+set "NAME_15=7-Zip"
+set "ID_15=7zip.7zip"
+set "CAT_15=Utilities"
+
+set "NAME_16=WinRAR"
+set "ID_16=RARLab.WinRAR"
+set "CAT_16=Utilities"
+
+set "NAME_17=qBittorrent"
+set "ID_17=qBittorrent.qBittorrent"
+set "CAT_17=Utilities"
+
+set "NAME_18=MSI Afterburner"
+set "ID_18=Guru3D.Afterburner"
+set "CAT_18=Utilities"
+
+set "NAME_19=PowerToys"
+set "ID_19=Microsoft.PowerToys"
+set "CAT_19=Utilities"
+
+set "NAME_20=Everything Search"
+set "ID_20=voidtools.Everything"
+set "CAT_20=Utilities"
 
 :: ─── Initialize selection ───
 for /L %%i in (1,1,%TOTAL%) do set "SEL_%%i=0"
@@ -94,9 +144,17 @@ for /L %%i in (1,1,%TOTAL%) do (
         set "LAST_CAT=!CAT_%%i!"
     )
     if "!SEL_%%i!"=="1" (
-        echo     %C_GREEN%  %%i. [■] !NAME_%%i!%C_RESET%
+        if %%i lss 10 (
+            echo     %C_GREEN%  %%i. [■] !NAME_%%i!%C_RESET%
+        ) else (
+            echo     %C_GREEN% %%i. [■] !NAME_%%i!%C_RESET%
+        )
     ) else (
-        echo       %%i. [ ] !NAME_%%i!
+        if %%i lss 10 (
+            echo       %%i. [ ] !NAME_%%i!
+        ) else (
+            echo      %%i. [ ] !NAME_%%i!
+        )
     )
 )
 
