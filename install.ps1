@@ -21,3 +21,4 @@ try {
     Write-Host "  ✗ Download failed: $_" -ForegroundColor Red
     Write-Host "  Try: git clone https://github.com/Refyrd/WinKit.git" -ForegroundColor Gray
 }
+
