@@ -30,14 +30,6 @@ exit /b
 
 #POWERSHELL_BEGIN
 $Host.UI.RawUI.WindowTitle = "WinKit - App Installer"
-try {
-    $buf = $Host.UI.RawUI.BufferSize
-    $buf.Width = 60; $buf.Height = 300
-    $Host.UI.RawUI.BufferSize = $buf
-    $win = $Host.UI.RawUI.WindowSize
-    $win.Width = 60; $win.Height = 26
-    $Host.UI.RawUI.WindowSize = $win
-} catch {}
 
 # --- App definitions ---
 $apps = @(
@@ -199,14 +191,6 @@ while ($true) {
 }
 
 # === INSTALL ===
-try {
-    $buf = $Host.UI.RawUI.BufferSize
-    $buf.Width = 80; $buf.Height = 1000
-    $Host.UI.RawUI.BufferSize = $buf
-    $win = $Host.UI.RawUI.WindowSize
-    $win.Width = 80; $win.Height = 30
-    $Host.UI.RawUI.WindowSize = $win
-} catch {}
 
 [Console]::Clear()
 Write-Host ""

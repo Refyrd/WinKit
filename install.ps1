@@ -13,12 +13,13 @@ $batPath = Join-Path $tempDir "setup.bat"
 
 try {
     Invoke-WebRequest -Uri $batUrl -OutFile $batPath -UseBasicParsing
-    Write-Host "  ✓ Downloaded successfully" -ForegroundColor Green
-    Write-Host "  → Launching WinKit..." -ForegroundColor Yellow
+    Write-Host "  Done! Launching WinKit..." -ForegroundColor Green
+    Write-Host "  This window will close when WinKit exits." -ForegroundColor DarkGray
     Write-Host ""
-    Start-Process cmd -ArgumentList "/c `"$batPath`"" -Verb RunAs
+    Start-Process cmd -ArgumentList "/c `"$batPath`"" -Verb RunAs -Wait
+    Write-Host "  WinKit finished." -ForegroundColor Green
 } catch {
-    Write-Host "  ✗ Download failed: $_" -ForegroundColor Red
+    Write-Host "  Download failed: $_" -ForegroundColor Red
     Write-Host "  Try: git clone https://github.com/Refyrd/WinKit.git" -ForegroundColor Gray
 }
 
