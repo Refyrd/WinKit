@@ -48,7 +48,7 @@ irm https://raw.githubusercontent.com/Refyrd/WinKit/main/install.ps1 | iex
 ```bash
 git clone https://github.com/Refyrd/WinKit.git
 cd WinKit
-setup.bat
+winkit.bat
 ```
 
 ## 🎯 Возможности
@@ -75,7 +75,7 @@ setup.bat
 | 🛠 **Утилиты** | 7-Zip, WinRAR, qBittorrent, MSI Afterburner, PowerToys, Everything Search, Rufus, ShareX |
 | ⚙️ **Система** | DirectX Web Setup, Visual C++ Redist, CPU-Z, GPU-Z, HWMonitor, CrystalDiskInfo |
 
-> 💡 **Хотите добавить свои приложения?** Отредактируйте `setup.bat` — добавьте `Name`, `Id`, `Cat` в массив `$apps`.
+> 💡 **Хотите добавить свои приложения?** Отредактируйте `winkit.bat` — добавьте `Name`, `Id`, `Cat` в массив `$apps`.
 
 ## ⌨️ Управление
 
@@ -97,7 +97,7 @@ setup.bat
 ## 🤝 Вклад в проект
 
 1. Сделайте форк репозитория
-2. Добавьте новые приложения в `setup.bat`
+2. Добавьте новые приложения в `winkit.bat`
 3. Отправьте pull request
 
 ## 📄 Лицензия
