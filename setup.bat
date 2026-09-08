@@ -81,7 +81,7 @@ function Draw {
     $items = Get-Items $page
 
     Write-Host "`n  ======================================================" -Fore Cyan
-    Write-Host "  |           WinKit - App Installer                |" -Fore Cyan
+    Write-Host "  |           WinKit - App Installer                   |" -Fore Cyan
     Write-Host "  ======================================================`n" -Fore Cyan
 
     # Page tabs
@@ -122,7 +122,7 @@ function Draw {
     Write-Host "[Space]" -Fore Cyan -NoNewline
     Write-Host " toggle  " -Fore DarkGray -NoNewline
     Write-Host "[A]" -Fore Green -NoNewline
-    Write-Host " all" -Fore DarkGray
+    Write-Host " all/none" -Fore DarkGray
     Write-Host "   [Enter]" -Fore Green -NoNewline
     Write-Host " install  " -Fore DarkGray -NoNewline
     Write-Host "[C]" -Fore Yellow -NoNewline
@@ -145,7 +145,10 @@ while (-not $doInstall) {
         "UpArrow"    { if ($cur -gt 0) { $cur-- } }
         "DownArrow"  { if ($cur -lt ($items.Count - 1)) { $cur++ } }
         "Spacebar"   { if ($items.Count -gt 0) { $apps[$items[$cur]].Sel = -not $apps[$items[$cur]].Sel } }
-        "A"          { foreach ($a in $apps) { $a.Sel = $true } }
+        "A"          { 
+            $allSelected = ($apps | Where-Object { -not $_.Sel }).Count -eq 0
+            foreach ($a in $apps) { $a.Sel = -not $allSelected } 
+        }
         "C"          { foreach ($a in $apps) { $a.Sel = $false } }
         "Escape"     { exit }
         "Enter" {
@@ -160,11 +163,9 @@ $sel = @($apps | Where-Object { $_.Sel })
 
 [Console]::Clear()
 Write-Host ""
-Write-Host "  ======================================================" -Fore Cyan
-Write-Host "  |" -Fore Cyan -NoNewline
-Write-Host "            Confirm Installation                 " -Fore White -NoNewline
-Write-Host "|" -Fore Cyan
-Write-Host "  ======================================================" -Fore Cyan
+Write-Host "`n  ======================================================" -Fore Cyan
+Write-Host "  |            Confirm Installation                    |" -Fore Cyan
+Write-Host "  ======================================================`n" -Fore Cyan
 Write-Host ""
 Write-Host "   Will install $($sel.Count) app(s):" -Fore Green
 Write-Host ""
@@ -186,7 +187,7 @@ while ($true) {
 # === INSTALL ===
 [Console]::Clear()
 Write-Host "`n  ==========================================================" -Fore Cyan
-Write-Host "  |              Installing apps...                       |" -Fore Cyan
+Write-Host "  |              Installing apps...                        |" -Fore Cyan
 Write-Host "  ==========================================================`n" -Fore Cyan
 
 $ok = 0; $fail = 0; $done = 0
@@ -219,7 +220,7 @@ foreach ($a in $sel) {
 
 # === RESULTS ===
 Write-Host "`n  ==========================================================" -Fore Cyan
-Write-Host "  |              Installation Results                     |" -Fore Cyan
+Write-Host "  |              Installation Results                      |" -Fore Cyan
 Write-Host "  ==========================================================`n" -Fore Cyan
 foreach ($r in $results) {
     if ($r.S -eq "OK") { Write-Host "     [OK]   $($r.N)" -Fore Green }
