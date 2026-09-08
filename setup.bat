@@ -2,8 +2,8 @@
 chcp 65001 >nul
 
 :: ═══════════════════════════════════════════════════════════════
-::  AutoInstall — быстрая установка программ через WinGet
-::  GitHub: https://github.com/Refyrd/AutoInstall
+::  WinKit — быстрая установка программ через WinGet
+::  GitHub: https://github.com/Refyrd/WinKit
 :: ═══════════════════════════════════════════════════════════════
 
 :: Проверка прав администратора
@@ -19,7 +19,7 @@ if %errorlevel% neq 0 (
 if "%1"=="admin" cd /d "%~dp0"
 
 setlocal EnableDelayedExpansion
-title AutoInstall — Мастер установки ПО
+title WinKit — Мастер установки ПО
 
 :: ─── Цвета ───
 for /F %%a in ('echo prompt $E ^| cmd') do set "ESC=%%a"
@@ -82,7 +82,7 @@ for /L %%i in (1,1,%TOTAL%) do set "SEL_%%i=0"
 cls
 echo.
 echo  %C_CYAN%╔════════════════════════════════════════════════════════╗%C_RESET%
-echo  %C_CYAN%║%C_BOLD%%C_WHITE%          AutoInstall — Мастер установки ПО            %C_RESET%%C_CYAN%║%C_RESET%
+echo  %C_CYAN%║%C_BOLD%%C_WHITE%            WinKit — Мастер установки ПО               %C_RESET%%C_CYAN%║%C_RESET%
 echo  %C_CYAN%╚════════════════════════════════════════════════════════╝%C_RESET%
 echo.
 
