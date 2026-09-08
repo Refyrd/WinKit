@@ -60,11 +60,11 @@ setup.bat
 | 🔄 **Toggle** | Select multiple apps across different categories |
 | 📊 **Progress** | Live counter `[2/5]` during installation |
 | 📋 **Report** | Summary with ✓ success / ✗ failure for each app |
-| 🎨 **Categories** | Apps organized into 5 categories |
+| 🎨 **Categories** | Apps organized into 6 categories |
 | 🛡 **Auto-elevate** | Requests admin rights automatically |
 | ⚡ **One-liner** | Install via `irm ... \| iex` — no git needed |
 
-## 📦 Available Apps (25)
+## 📦 Available Apps (31)
 
 | Category | Apps |
 |----------|------|
@@ -73,6 +73,7 @@ setup.bat
 | 🎮 **Gaming / Social** | Steam, Discord, Telegram |
 | 🎬 **Media** | VLC, Spotify, OBS Studio, K-Lite Codec Pack |
 | 🛠 **Utilities** | 7-Zip, WinRAR, qBittorrent, MSI Afterburner, PowerToys, Everything, Rufus, ShareX |
+| ⚙️ **System** | DirectX Web Setup, Visual C++ Redist, CPU-Z, GPU-Z, HWMonitor, CrystalDiskInfo |
 
 > 💡 **Want to add your own apps?** Edit `setup.bat` — add `Name`, `Id`, and `Cat` into the `$apps` array.
 

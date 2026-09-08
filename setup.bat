@@ -64,10 +64,18 @@ $apps = @(
     @{Name="PowerToys";          Id="Microsoft.PowerToys";        Cat=4; Sel=$false},
     @{Name="Everything Search";  Id="voidtools.Everything";       Cat=4; Sel=$false},
     @{Name="Rufus";              Id="Rufus.Rufus";                Cat=4; Sel=$false},
-    @{Name="ShareX";             Id="ShareX.ShareX";              Cat=4; Sel=$false}
+    @{Name="ShareX";             Id="ShareX.ShareX";              Cat=4; Sel=$false},
+
+    # Cat 5: System
+    @{Name="DirectX Web Setup";  Id="Microsoft.DirectX";          Cat=5; Sel=$false},
+    @{Name="Visual C++ Redist";  Id="Microsoft.VCRedist.2015+.x64"; Cat=5; Sel=$false},
+    @{Name="CPU-Z";              Id="CPUID.CPU-Z";                Cat=5; Sel=$false},
+    @{Name="GPU-Z";              Id="TechPowerUp.GPU-Z";          Cat=5; Sel=$false},
+    @{Name="HWMonitor";          Id="CPUID.HWMonitor";            Cat=5; Sel=$false},
+    @{Name="CrystalDiskInfo";    Id="CrystalDewWorld.CrystalDiskInfo"; Cat=5; Sel=$false}
 )
 
-$cats = @("Browsers", "Development", "Gaming / Social", "Media", "Utilities")
+$cats = @("Browsers", "Development", "Gaming / Social", "Media", "Utilities", "System")
 $page = 0
 $cur = 0
 
