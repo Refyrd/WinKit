@@ -81,7 +81,7 @@ function Draw {
     $items = Get-Items $page
 
     Write-Host "`n  ======================================================" -Fore Cyan
-    Write-Host "  |           WinKit - App Installer                   |" -Fore Cyan
+    Write-Host "  |              WinKit - App Installer                |" -Fore Cyan
     Write-Host "  ======================================================`n" -Fore Cyan
 
     # Page tabs
@@ -96,7 +96,7 @@ function Draw {
     for ($j = 0; $j -lt $items.Count; $j++) {
         $idx = $items[$j]
         $a = $apps[$idx]
-        $n = $idx + 1
+        $n = $j + 1
         $pad = " " * (2 - "$n".Length)
         $check = if ($a.Sel) {"[x]"} else {"[ ]"}
         $arrow = if ($j -eq $cur) {">"} else {" "}
@@ -139,21 +139,31 @@ while (-not $doInstall) {
     Draw
 
     $key = [Console]::ReadKey($true)
-    switch ($key.Key) {
-        "LeftArrow"  { if ($page -gt 0) { $page--; $cur = 0 } }
-        "RightArrow" { if ($page -lt ($cats.Count - 1)) { $page++; $cur = 0 } }
-        "UpArrow"    { if ($cur -gt 0) { $cur-- } }
-        "DownArrow"  { if ($cur -lt ($items.Count - 1)) { $cur++ } }
-        "Spacebar"   { if ($items.Count -gt 0) { $apps[$items[$cur]].Sel = -not $apps[$items[$cur]].Sel } }
-        "A"          { 
-            $allSelected = ($apps | Where-Object { -not $_.Sel }).Count -eq 0
-            foreach ($a in $apps) { $a.Sel = -not $allSelected } 
+    $ch = $key.KeyChar.ToString()
+    if ([int]::TryParse($ch, [ref]$null)) {
+        $num = [int]$ch
+        if ($num -ge 1 -and $num -le $items.Count) {
+            $idx = $items[$num - 1]
+            $apps[$idx].Sel = -not $apps[$idx].Sel
         }
-        "C"          { foreach ($a in $apps) { $a.Sel = $false } }
-        "Escape"     { exit }
-        "Enter" {
-            $sel = $apps | Where-Object { $_.Sel }
-            if ($sel.Count -gt 0) { $doInstall = $true }
+    } else {
+        switch ($key.Key) {
+            "LeftArrow"  { if ($page -gt 0) { $page--; $cur = 0 } }
+            "RightArrow" { if ($page -lt ($cats.Count - 1)) { $page++; $cur = 0 } }
+            "UpArrow"    { if ($cur -gt 0) { $cur-- } }
+            "DownArrow"  { if ($cur -lt ($items.Count - 1)) { $cur++ } }
+            "Spacebar"   { if ($items.Count -gt 0) { $apps[$items[$cur]].Sel = -not $apps[$items[$cur]].Sel } }
+            "A"          { 
+                $pageApps = $apps[$items]
+                $allSelected = ($pageApps | Where-Object { -not $_.Sel }).Count -eq 0
+                foreach ($idx in $items) { $apps[$idx].Sel = -not $allSelected } 
+            }
+            "C"          { foreach ($a in $apps) { $a.Sel = $false } }
+            "Escape"     { exit }
+            "Enter" {
+                $sel = $apps | Where-Object { $_.Sel }
+                if ($sel.Count -gt 0) { $doInstall = $true }
+            }
         }
     }
 }

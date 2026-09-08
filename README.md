@@ -82,8 +82,9 @@ setup.bat
 |-----|--------|
 | `↑` / `↓` | Navigate apps |
 | `←` / `→` | Switch categories |
+| `1`-`9` | Toggle specific app on current page |
 | `Space` | Select / Deselect app |
-| `A` / `C` | Select all / Clear selection |
+| `A` / `C` | Select all (current page) / Clear all selection |
 | `Enter` | Start installation |
 | `Esc` | Exit |
 
