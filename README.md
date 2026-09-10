@@ -14,45 +14,14 @@
 
 **Skip the boring setup.** WinKit lets you pick all the apps you need from a single screen and installs them in one go — no clicking through wizards, no hunting for downloads.
 
-<br>
-
-```text
-  ======================================================
-  |              WinKit - App Installer                |
-  ======================================================
-
-    [1]  2   3   4   5   6   7 
-
-   Browsers
-
-   >  1. [x] Google Chrome
-      2. [x] Mozilla Firefox
-      3. [ ] Brave Browser
-      4. [ ] Vivaldi
-
-
-
-
-
-  ------------------------------------------------------
-   Selected: 2 of 37
-  ------------------------------------------------------
-
-   [<] [>] pages  [Space] toggle  [A] all/none
-   [Enter] install  [C] clear   [Esc] exit
-```
-
-</div>
-
----
-
 ## 🚀 Quick Start
 
-### One-liner (PowerShell)
-
+**One-liner (PowerShell):**
 ```powershell
 irm https://raw.githubusercontent.com/Refyrd/WinKit/main/install.ps1 | iex
 ```
+
+*This will download and launch the WinKit GUI directly.*
 
 ### Or clone the repo
 

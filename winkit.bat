@@ -84,145 +84,144 @@ $apps = @(
 )
 
 $cats = @("Browsers", "Development", "Gaming / Social", "Media", "Utilities", "System", "Productivity")
-$page = 0
-$cur = 0
+Add-Type -AssemblyName PresentationFramework
 
-function Get-Items($p) {
-    return @(0..($apps.Count-1) | Where-Object { $apps[$_].Cat -eq $p })
-}
+$xaml = @"
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="WinKit - App Installer" Width="800" Height="580" 
+        WindowStartupLocation="CenterScreen" Background="#202020" Foreground="#FFFFFF"
+        FontFamily="Segoe UI" FontSize="14">
+    <Window.Resources>
+        <Style TargetType="TabItem">
+            <Setter Property="Background" Value="#2D2D2D"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Padding" Value="15,10"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FontSize" Value="15"/>
+        </Style>
+    </Window.Resources>
+    <Grid Margin="25">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        
+        <TextBlock Text="WinKit - App Installer" FontSize="32" FontWeight="SemiBold" Foreground="#4CC2FF" Margin="0,0,0,20"/>
+        
+        <TabControl Name="TabCats" Grid.Row="1" Background="#282828" BorderThickness="0" Padding="15">
+        </TabControl>
+        
+        <Border Grid.Row="2" Background="#2D2D2D" CornerRadius="8" Padding="15" Margin="0,20,0,0">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                
+                <StackPanel Orientation="Horizontal" Grid.Column="0">
+                    <Button Name="BtnSelectAll" Content="Select All" Width="100" Height="35" Margin="0,0,10,0" Background="#3E3E42" Foreground="White" BorderThickness="0" Cursor="Hand"/>
+                    <Button Name="BtnClearAll" Content="Clear All" Width="100" Height="35" Background="#3E3E42" Foreground="White" BorderThickness="0" Cursor="Hand"/>
+                </StackPanel>
+                
+                <StackPanel Orientation="Horizontal" Grid.Column="2">
+                    <Button Name="BtnSave" Content="Save Preset" Width="100" Height="35" Margin="0,0,10,0" Background="#3E3E42" Foreground="White" BorderThickness="0" Cursor="Hand"/>
+                    <Button Name="BtnLoad" Content="Load Preset" Width="100" Height="35" Margin="0,0,10,0" Background="#3E3E42" Foreground="White" BorderThickness="0" Cursor="Hand"/>
+                    <Button Name="BtnInstall" Content="Install" Width="120" Height="35" Background="#4CC2FF" Foreground="Black" FontWeight="Bold" BorderThickness="0" Cursor="Hand"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>
+"@
 
-function Draw {
-    [Console]::Clear()
-    $sc = ($apps | Where-Object { $_.Sel }).Count
-    $items = Get-Items $page
+$reader = (New-Object System.Xml.XmlNodeReader([xml]$xaml))
+$win = [Windows.Markup.XamlReader]::Load($reader)
 
-    Write-Host "`n  ======================================================" -Fore Cyan
-    Write-Host "  |              WinKit - App Installer                |" -Fore Cyan
-    Write-Host "  ======================================================`n" -Fore Cyan
+$tabCats = $win.FindName("TabCats")
+$btnSelectAll = $win.FindName("BtnSelectAll")
+$btnClearAll = $win.FindName("BtnClearAll")
+$btnSave = $win.FindName("BtnSave")
+$btnLoad = $win.FindName("BtnLoad")
+$btnInstall = $win.FindName("BtnInstall")
 
-    # Page tabs
-    Write-Host "   " -NoNewline
-    for ($p = 0; $p -lt $cats.Count; $p++) {
-        if ($p -eq $page) { Write-Host " [$($p+1)]" -Fore White -NoNewline }
-        else { Write-Host "  $($p+1) " -Fore DarkGray -NoNewline }
-    }
-    Write-Host "`n`n   $($cats[$page])`n" -Fore Yellow
+$checkBoxes = @()
 
-    # Items
-    for ($j = 0; $j -lt $items.Count; $j++) {
-        $idx = $items[$j]
-        $a = $apps[$idx]
-        $n = $j + 1
-        $pad = " " * (2 - "$n".Length)
-        $check = if ($a.Sel) {"[x]"} else {"[ ]"}
-        $arrow = if ($j -eq $cur) {">"} else {" "}
-        $color = if ($a.Sel) {"Green"} elseif ($j -eq $cur) {"White"} else {"Gray"}
-
-        Write-Host "   $arrow $pad$n. $check $($a.Name)" -Fore $color
-    }
-
-    # Pad empty lines to keep layout stable
-    $empty = 8 - $items.Count
-    if ($empty -gt 0) {
-        for ($e = 0; $e -lt $empty; $e++) { Write-Host "" }
-    }
-
-    Write-Host "`n  ------------------------------------------------------" -Fore Cyan
-    Write-Host "   Selected: " -Fore White -NoNewline
-    Write-Host "$sc" -Fore Green -NoNewline
-    Write-Host " of $($apps.Count)" -Fore White
-    Write-Host "  ------------------------------------------------------`n" -Fore Cyan
+for ($c = 0; $c -lt $cats.Count; $c++) {
+    $tabItem = New-Object System.Windows.Controls.TabItem
+    $tabItem.Header = $cats[$c]
+    $scroll = New-Object System.Windows.Controls.ScrollViewer
+    $scroll.VerticalScrollBarVisibility = "Auto"
+    $wrap = New-Object System.Windows.Controls.WrapPanel
+    $wrap.Margin = "5"
     
-    Write-Host "   [<] [>]" -Fore Cyan -NoNewline
-    Write-Host " pages  " -Fore DarkGray -NoNewline
-    Write-Host "[Space]" -Fore Cyan -NoNewline
-    Write-Host " toggle  " -Fore DarkGray -NoNewline
-    Write-Host "[A]" -Fore Green -NoNewline
-    Write-Host " all/none" -Fore DarkGray
-    Write-Host "   [Enter]" -Fore Green -NoNewline
-    Write-Host " install  " -Fore DarkGray -NoNewline
-    Write-Host "[C]" -Fore Yellow -NoNewline
-    Write-Host " clear  " -Fore DarkGray -NoNewline
-    Write-Host "[S]" -Fore Magenta -NoNewline
-    Write-Host "/" -Fore DarkGray -NoNewline
-    Write-Host "[L]" -Fore Magenta -NoNewline
-    Write-Host " preset  " -Fore DarkGray -NoNewline
-    Write-Host "[Esc]" -Fore Red -NoNewline
-    Write-Host " exit" -Fore DarkGray
+    for ($i = 0; $i -lt $apps.Count; $i++) {
+        if ($apps[$i].Cat -eq $c) {
+            $chk = New-Object System.Windows.Controls.CheckBox
+            $chk.Content = $apps[$i].Name
+            $chk.Width = 220
+            $chk.Margin = "10"
+            $chk.FontSize = 14
+            $chk.Tag = $i
+            $chk.Foreground = "White"
+            $chk.IsChecked = $apps[$i].Sel
+            $checkBoxes += $chk
+            $wrap.Children.Add($chk) > $null
+        }
+    }
+    
+    $scroll.Content = $wrap
+    $tabItem.Content = $scroll
+    $tabCats.Items.Add($tabItem) > $null
 }
 
-# === MAIN LOOP ===
-$doInstall = $false
-while (-not $doInstall) {
-    $items = Get-Items $page
-    if ($cur -ge $items.Count) { $cur = [Math]::Max(0, $items.Count - 1) }
-    Draw
+$btnSelectAll.Add_Click({
+    $curIdx = $tabCats.SelectedIndex
+    foreach ($chk in $checkBoxes) {
+        $appIdx = $chk.Tag
+        if ($apps[$appIdx].Cat -eq $curIdx) { $chk.IsChecked = $true }
+    }
+})
 
-    $key = [Console]::ReadKey($true)
-    $ch = $key.KeyChar.ToString()
-    if ([int]::TryParse($ch, [ref]$null)) {
-        $num = [int]$ch
-        if ($num -ge 1 -and $num -le $items.Count) {
-            $idx = $items[$num - 1]
-            $apps[$idx].Sel = -not $apps[$idx].Sel
+$btnClearAll.Add_Click({
+    foreach ($chk in $checkBoxes) { $chk.IsChecked = $false }
+})
+
+$btnSave.Add_Click({
+    $selIds = @()
+    foreach ($chk in $checkBoxes) {
+        if ($chk.IsChecked) { $selIds += $apps[$chk.Tag].Id }
+    }
+    if ($selIds) { $selIds | Out-File "$env:USERPROFILE\Documents\winkit-preset.txt" -Encoding utf8 }
+    [System.Windows.MessageBox]::Show("Preset saved to Documents\winkit-preset.txt", "WinKit", 0, 64)
+})
+
+$btnLoad.Add_Click({
+    if (Test-Path "$env:USERPROFILE\Documents\winkit-preset.txt") {
+        $savedIds = Get-Content "$env:USERPROFILE\Documents\winkit-preset.txt"
+        foreach ($chk in $checkBoxes) {
+            if ($savedIds -contains $apps[$chk.Tag].Id) { $chk.IsChecked = $true }
         }
     } else {
-        switch ($key.Key) {
-            "LeftArrow"  { if ($page -gt 0) { $page--; $cur = 0 } }
-            "RightArrow" { if ($page -lt ($cats.Count - 1)) { $page++; $cur = 0 } }
-            "UpArrow"    { if ($cur -gt 0) { $cur-- } }
-            "DownArrow"  { if ($cur -lt ($items.Count - 1)) { $cur++ } }
-            "Spacebar"   { if ($items.Count -gt 0) { $apps[$items[$cur]].Sel = -not $apps[$items[$cur]].Sel } }
-            "A"          { 
-                $pageApps = $apps[$items]
-                $allSelected = ($pageApps | Where-Object { -not $_.Sel }).Count -eq 0
-                foreach ($idx in $items) { $apps[$idx].Sel = -not $allSelected } 
-            }
-            "C"          { foreach ($a in $apps) { $a.Sel = $false } }
-            "S"          {
-                $selIds = $apps | Where-Object { $_.Sel } | ForEach-Object { $_.Id }
-                if ($selIds) { $selIds | Out-File "$env:USERPROFILE\Documents\winkit-preset.txt" -Encoding utf8 }
-            }
-            "L"          {
-                if (Test-Path "$env:USERPROFILE\Documents\winkit-preset.txt") {
-                    $savedIds = Get-Content "$env:USERPROFILE\Documents\winkit-preset.txt"
-                    foreach ($a in $apps) { if ($savedIds -contains $a.Id) { $a.Sel = $true } }
-                }
-            }
-            "Escape"     { exit }
-            "Enter" {
-                $sel = $apps | Where-Object { $_.Sel }
-                if ($sel.Count -gt 0) { $doInstall = $true }
-            }
-        }
+        [System.Windows.MessageBox]::Show("No preset found in Documents folder.", "WinKit", 0, 48)
     }
-}
+})
 
-# === CONFIRM ===
+$btnInstall.Add_Click({
+    foreach ($chk in $checkBoxes) {
+        $apps[$chk.Tag].Sel = $chk.IsChecked -eq $true
+    }
+    $win.DialogResult = $true
+    $win.Close()
+})
+
+$res = $win.ShowDialog()
+if ($res -ne $true) { exit }
+
 $sel = @($apps | Where-Object { $_.Sel })
-
-[Console]::Clear()
-Write-Host ""
-Write-Host "`n  ======================================================" -Fore Cyan
-Write-Host "  |            Confirm Installation                    |" -Fore Cyan
-Write-Host "  ======================================================`n" -Fore Cyan
-Write-Host ""
-Write-Host "   Will install $($sel.Count) app(s):" -Fore Green
-Write-Host ""
-foreach ($a in $sel) {
-    Write-Host "     - $($a.Name)" -Fore White -NoNewline
-    Write-Host "  [$($a.Id)]" -Fore DarkGray
-}
-Write-Host ""
-Write-Host "  ------------------------------------------------------" -Fore Cyan
-Write-Host ""
-Write-Host "   [Enter] Start  |  [Esc] Back" -Fore DarkGray
-
-while ($true) {
-    $k = [Console]::ReadKey($true)
-    if ($k.Key -eq "Escape") { exit }
-    if ($k.Key -eq "Enter") { break }
-}
+if ($sel.Count -eq 0) { exit }
 
 # === INSTALL ===
 [Console]::Clear()
