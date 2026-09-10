@@ -180,7 +180,7 @@ while (-not $doInstall) {
             }
             "C"          { foreach ($a in $apps) { $a.Sel = $false } }
             "S"          {
-                $selIds = $apps | Where-Object { $_.Sel } | Select-Object -ExpandProperty Id
+                $selIds = $apps | Where-Object { $_.Sel } | ForEach-Object { $_.Id }
                 if ($selIds) { $selIds | Out-File "winkit-preset.txt" -Encoding utf8 }
             }
             "L"          {
