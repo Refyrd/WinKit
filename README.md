@@ -64,15 +64,15 @@ winkit.bat
 | 🛡 **Auto-elevate** | Requests admin rights automatically |
 | ⚡ **One-liner** | Install via `irm ... \| iex` — no git needed |
 
-## 📦 Available Apps (34)
+## 📦 Available Apps (37)
 
 | Category | Apps |
 |----------|------|
 | 🌐 **Browsers** | Google Chrome, Mozilla Firefox, Brave, Vivaldi |
 | 💻 **Development** | VS Code, Git, Python 3, Node.js LTS, Notepad++, Docker Desktop |
 | 🎮 **Gaming / Social** | Steam, Discord, Telegram |
-| 🎬 **Media** | VLC, Spotify, OBS Studio, K-Lite Codec Pack |
-| 🛠 **Utilities** | 7-Zip, WinRAR, qBittorrent, MSI Afterburner, PowerToys, Everything, Rufus, ShareX, Revo Uninstaller |
+| 🎬 **Media** | VLC, Spotify, OBS Studio, K-Lite Codec Pack, Audacity, GIMP |
+| 🛠 **Utilities** | 7-Zip, WinRAR, qBittorrent, MSI Afterburner, PowerToys, Everything, Rufus, ShareX, Revo Uninstaller, WizTree |
 | ⚙️ **System** | DirectX Web Setup, Visual C++ Redist, CPU-Z, GPU-Z, HWMonitor, CrystalDiskInfo |
 | 📝 **Productivity**| Obsidian, Notion |
 

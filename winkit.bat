@@ -55,6 +55,8 @@ $apps = @(
     @{Name="Spotify";            Id="Spotify.Spotify";            Cat=3; Sel=$false},
     @{Name="OBS Studio";         Id="OBSProject.OBSStudio";       Cat=3; Sel=$false},
     @{Name="K-Lite Codec Pack";  Id="CodecGuide.K-LiteCodecPack.Standard"; Cat=3; Sel=$false},
+    @{Name="Audacity";           Id="Audacity.Audacity";          Cat=3; Sel=$false},
+    @{Name="GIMP";               Id="GIMP.GIMP";                  Cat=3; Sel=$false},
 
     # Cat 4: Utilities
     @{Name="7-Zip";              Id="7zip.7zip";                  Cat=4; Sel=$false},
@@ -66,6 +68,7 @@ $apps = @(
     @{Name="Rufus";              Id="Rufus.Rufus";                Cat=4; Sel=$false},
     @{Name="ShareX";             Id="ShareX.ShareX";              Cat=4; Sel=$false},
     @{Name="Revo Uninstaller";   Id="VSRevoGroup.RevoUninstallerFree"; Cat=4; Sel=$false},
+    @{Name="WizTree";            Id="AntibodySoftware.WizTree";   Cat=4; Sel=$false},
 
     # Cat 5: System
     @{Name="DirectX Web Setup";  Id="Microsoft.DirectX";          Cat=5; Sel=$false},

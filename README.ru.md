@@ -64,15 +64,15 @@ winkit.bat
 | 🛡 **Авто-права** | Автоматический запрос прав администратора |
 | ⚡ **Одна команда** | Установка через `irm ... \| iex` — без git |
 
-## 📦 Доступные приложения (34)
+## 📦 Доступные приложения (37)
 
 | Категория | Приложения |
 |-----------|-----------|
 | 🌐 **Браузеры** | Google Chrome, Mozilla Firefox, Brave, Vivaldi |
 | 💻 **Разработка** | VS Code, Git, Python 3, Node.js LTS, Notepad++, Docker Desktop |
 | 🎮 **Игры и общение** | Steam, Discord, Telegram |
-| 🎬 **Медиа** | VLC, Spotify, OBS Studio, K-Lite Codec Pack |
-| 🛠 **Утилиты** | 7-Zip, WinRAR, qBittorrent, MSI Afterburner, PowerToys, Everything Search, Rufus, ShareX, Revo Uninstaller |
+| 🎬 **Медиа** | VLC, Spotify, OBS Studio, K-Lite Codec Pack, Audacity, GIMP |
+| 🛠 **Утилиты** | 7-Zip, WinRAR, qBittorrent, MSI Afterburner, PowerToys, Everything Search, Rufus, ShareX, Revo Uninstaller, WizTree |
 | ⚙️ **Система** | DirectX Web Setup, Visual C++ Redist, CPU-Z, GPU-Z, HWMonitor, CrystalDiskInfo |
 | 📝 **Продуктивность**| Obsidian, Notion |
 
