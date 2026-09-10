@@ -14,7 +14,12 @@ if (-not $isAdmin -or -not $isSTA) {
     }
 }
 
-$Host.UI.RawUI.WindowTitle = "WinKit - App Installer"
+$Host.UI.RawUI.WindowTitle = "WinKit - Backend Service"
+Write-Host "WinKit GUI Initialization..." -ForegroundColor Cyan
+
+# Hide Console Window while GUI is active
+Add-Type -Name Window -Namespace Console -MemberDefinition '[DllImport("Kernel32.dll")]public static extern IntPtr GetConsoleWindow();[DllImport("user32.dll")]public static extern bool ShowWindow(IntPtr hWnd, Int32 nCmdShow);' -ErrorAction Ignore
+[Console.Window]::ShowWindow([Console.Window]::GetConsoleWindow(), 0) | Out-Null
 
 # --- App definitions ---
 $apps = @(
@@ -65,21 +70,22 @@ $xaml = @"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="WinKit - App Installer" Width="800" Height="580" 
         WindowStartupLocation="CenterScreen" Background="Transparent" Foreground="#FFFFFF"
-        WindowStyle="None" AllowsTransparency="False"
+        WindowStyle="None" AllowsTransparency="False" ResizeMode="CanMinimize"
         FontFamily="Segoe UI Variable Text, Segoe UI" FontSize="14">
     <Window.Resources>
         <Style TargetType="TabItem">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="FontSize" Value="15"/>
-            <Setter Property="Margin" Value="0,0,5,0"/>
+            <Setter Property="Margin" Value="0,0,6,0"/>
+            <Setter Property="Padding" Value="12,8,12,10"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="TabItem">
                         <Grid>
-                            <Border Name="Border" Background="{TemplateBinding Background}" CornerRadius="4"/>
-                            <ContentPresenter x:Name="ContentSite" VerticalAlignment="Center" HorizontalAlignment="Center" ContentSource="Header" Margin="15,10,15,12"/>
-                            <Border x:Name="Indicator" Height="3" CornerRadius="1.5" Background="#55C5FF" VerticalAlignment="Bottom" Margin="12,0,12,2" Visibility="Collapsed"/>
+                            <Border Name="Border" Background="{TemplateBinding Background}" CornerRadius="6"/>
+                            <ContentPresenter x:Name="ContentSite" VerticalAlignment="Center" HorizontalAlignment="Center" ContentSource="Header" Margin="{TemplateBinding Padding}"/>
+                            <Border x:Name="Indicator" Height="3" CornerRadius="1.5" Background="#55C5FF" VerticalAlignment="Bottom" Margin="8,0,8,2" Visibility="Collapsed"/>
                         </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsSelected" Value="True">
@@ -361,6 +367,10 @@ $win.Add_SourceInitialized({
 })
 
 $res = $win.ShowDialog()
+
+# Restore console window
+[Console.Window]::ShowWindow([Console.Window]::GetConsoleWindow(), 5) | Out-Null
+
 if ($res -ne $true) { exit }
 
 Write-Host "=========================================" -ForegroundColor Cyan
