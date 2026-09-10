@@ -16,19 +16,30 @@
 
 <br>
 
-```
- ╔════════════════════════════════════════════════════════╗
- ║             WinKit — App Installer                    ║
- ╚════════════════════════════════════════════════════════╝
+```text
+  ======================================================
+  |              WinKit - App Installer                |
+  ======================================================
 
-   [Browsers]
-   > 1. [■] Google Chrome
-     2. [ ] Mozilla Firefox
-     3. [ ] Brave Browser
-     4. [ ] Vivaldi
+    [1]  2   3   4   5   6   7 
 
-   Selected: 4 of 25
-   > _
+   Browsers
+
+   >  1. [x] Google Chrome
+      2. [x] Mozilla Firefox
+      3. [ ] Brave Browser
+      4. [ ] Vivaldi
+
+
+
+
+
+  ------------------------------------------------------
+   Selected: 2 of 37
+  ------------------------------------------------------
+
+   [<] [>] pages  [Space] toggle  [A] all/none
+   [Enter] install  [C] clear   [Esc] exit
 ```
 
 </div>
