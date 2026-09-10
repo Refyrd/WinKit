@@ -65,6 +65,7 @@ $apps = @(
     @{Name="Everything Search";  Id="voidtools.Everything";       Cat=4; Sel=$false},
     @{Name="Rufus";              Id="Rufus.Rufus";                Cat=4; Sel=$false},
     @{Name="ShareX";             Id="ShareX.ShareX";              Cat=4; Sel=$false},
+    @{Name="Revo Uninstaller";   Id="VSRevoGroup.RevoUninstallerFree"; Cat=4; Sel=$false},
 
     # Cat 5: System
     @{Name="DirectX Web Setup";  Id="Microsoft.DirectX";          Cat=5; Sel=$false},
@@ -72,10 +73,14 @@ $apps = @(
     @{Name="CPU-Z";              Id="CPUID.CPU-Z";                Cat=5; Sel=$false},
     @{Name="GPU-Z";              Id="TechPowerUp.GPU-Z";          Cat=5; Sel=$false},
     @{Name="HWMonitor";          Id="CPUID.HWMonitor";            Cat=5; Sel=$false},
-    @{Name="CrystalDiskInfo";    Id="CrystalDewWorld.CrystalDiskInfo"; Cat=5; Sel=$false}
+    @{Name="CrystalDiskInfo";    Id="CrystalDewWorld.CrystalDiskInfo"; Cat=5; Sel=$false},
+
+    # Cat 6: Productivity
+    @{Name="Obsidian";           Id="Obsidian.Obsidian";          Cat=6; Sel=$false},
+    @{Name="Notion";             Id="Notion.Notion";              Cat=6; Sel=$false}
 )
 
-$cats = @("Browsers", "Development", "Gaming / Social", "Media", "Utilities", "System")
+$cats = @("Browsers", "Development", "Gaming / Social", "Media", "Utilities", "System", "Productivity")
 $page = 0
 $cur = 0
 

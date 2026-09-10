@@ -60,11 +60,11 @@ winkit.bat
 | 🔄 **Переключение** | Выбирайте разные приложения по разным категориям |
 | 📊 **Прогресс** | Счётчик `[2/5]` во время установки |
 | 📋 **Отчёт** | Итоговая таблица: ✓ успех / ✗ ошибка |
-| 🎨 **Категории** | 6 категорий для удобной навигации |
+| 🎨 **Категории** | 7 категорий для удобной навигации |
 | 🛡 **Авто-права** | Автоматический запрос прав администратора |
 | ⚡ **Одна команда** | Установка через `irm ... \| iex` — без git |
 
-## 📦 Доступные приложения (31)
+## 📦 Доступные приложения (34)
 
 | Категория | Приложения |
 |-----------|-----------|
@@ -72,8 +72,9 @@ winkit.bat
 | 💻 **Разработка** | VS Code, Git, Python 3, Node.js LTS, Notepad++, Docker Desktop |
 | 🎮 **Игры и общение** | Steam, Discord, Telegram |
 | 🎬 **Медиа** | VLC, Spotify, OBS Studio, K-Lite Codec Pack |
-| 🛠 **Утилиты** | 7-Zip, WinRAR, qBittorrent, MSI Afterburner, PowerToys, Everything Search, Rufus, ShareX |
+| 🛠 **Утилиты** | 7-Zip, WinRAR, qBittorrent, MSI Afterburner, PowerToys, Everything Search, Rufus, ShareX, Revo Uninstaller |
 | ⚙️ **Система** | DirectX Web Setup, Visual C++ Redist, CPU-Z, GPU-Z, HWMonitor, CrystalDiskInfo |
+| 📝 **Продуктивность**| Obsidian, Notion |
 
 > 💡 **Хотите добавить свои приложения?** Отредактируйте `winkit.bat` — добавьте `Name`, `Id`, `Cat` в массив `$apps`.
 

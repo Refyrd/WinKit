@@ -60,11 +60,11 @@ winkit.bat
 | 🔄 **Toggle** | Select multiple apps across different categories |
 | 📊 **Progress** | Live counter `[2/5]` during installation |
 | 📋 **Report** | Summary with ✓ success / ✗ failure for each app |
-| 🎨 **Categories** | Apps organized into 6 categories |
+| 🎨 **Categories** | Apps organized into 7 categories |
 | 🛡 **Auto-elevate** | Requests admin rights automatically |
 | ⚡ **One-liner** | Install via `irm ... \| iex` — no git needed |
 
-## 📦 Available Apps (31)
+## 📦 Available Apps (34)
 
 | Category | Apps |
 |----------|------|
@@ -72,8 +72,9 @@ winkit.bat
 | 💻 **Development** | VS Code, Git, Python 3, Node.js LTS, Notepad++, Docker Desktop |
 | 🎮 **Gaming / Social** | Steam, Discord, Telegram |
 | 🎬 **Media** | VLC, Spotify, OBS Studio, K-Lite Codec Pack |
-| 🛠 **Utilities** | 7-Zip, WinRAR, qBittorrent, MSI Afterburner, PowerToys, Everything, Rufus, ShareX |
+| 🛠 **Utilities** | 7-Zip, WinRAR, qBittorrent, MSI Afterburner, PowerToys, Everything, Rufus, ShareX, Revo Uninstaller |
 | ⚙️ **System** | DirectX Web Setup, Visual C++ Redist, CPU-Z, GPU-Z, HWMonitor, CrystalDiskInfo |
+| 📝 **Productivity**| Obsidian, Notion |
 
 > 💡 **Want to add your own apps?** Edit `winkit.bat` — add `Name`, `Id`, and `Cat` into the `$apps` array.
 
