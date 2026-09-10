@@ -1,64 +1,42 @@
-@echo off
-:: ===============================================================
-::  WinKit - quick app installer powered by WinGet
-::  GitHub: https://github.com/Refyrd/WinKit
-:: ===============================================================
+﻿param([switch]$Elevated)
 
-:: UAC elevation
-net session >nul 2>&1
-if %errorlevel% neq 0 (
-    echo Set UAC = CreateObject^("Shell.Application"^) > "%temp%\getadmin.vbs"
-    echo UAC.ShellExecute "cmd.exe", "/c """"%~f0"""" admin", "", "runas", 1 >> "%temp%\getadmin.vbs"
-    "%temp%\getadmin.vbs"
-    del "%temp%\getadmin.vbs"
-    exit /b
-)
-if "%1"=="admin" cd /d "%~dp0"
+# Auto-elevate and enforce STA if run directly
+$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+$isSTA = ([System.Threading.Thread]::CurrentThread.GetApartmentState() -eq 'STA')
 
-setlocal EnableDelayedExpansion
+if (-not $isAdmin -or -not $isSTA) {
+    if ($PSCommandPath) {
+        $argList = "-Sta -ExecutionPolicy Bypass -NoProfile -File `"$PSCommandPath`" -Elevated"
+        try {
+            Start-Process powershell.exe -ArgumentList $argList -Verb RunAs -Wait
+        } catch { }
+        exit
+    }
+}
 
-:: Extract embedded PowerShell and run it
-set "_ps=%temp%\winkit_menu.ps1"
-for /f "delims=:" %%a in ('findstr /n "#POWERSHELL_BEGIN" "%~f0"') do set "_ln=%%a"
-more +!_ln! "%~f0" > "!_ps!"
-powershell -NoProfile -ExecutionPolicy Bypass -File "!_ps!"
-del "!_ps!" >nul 2>&1
-endlocal
-exit /b
-
-#POWERSHELL_BEGIN
 $Host.UI.RawUI.WindowTitle = "WinKit - App Installer"
 
 # --- App definitions ---
 $apps = @(
-    # Cat 0: Browsers
     @{Name="Google Chrome";      Id="Google.Chrome";              Cat=0; Sel=$false},
     @{Name="Mozilla Firefox";    Id="Mozilla.Firefox";            Cat=0; Sel=$false},
     @{Name="Brave Browser";      Id="Brave.Brave";               Cat=0; Sel=$false},
     @{Name="Vivaldi";            Id="VivaldiTechnologies.Vivaldi";Cat=0; Sel=$false},
-
-    # Cat 1: Development
     @{Name="Visual Studio Code"; Id="Microsoft.VisualStudioCode"; Cat=1; Sel=$false},
     @{Name="Git";                Id="Git.Git";                    Cat=1; Sel=$false},
     @{Name="Python 3";           Id="Python.Python.3.12";         Cat=1; Sel=$false},
     @{Name="Node.js LTS";        Id="OpenJS.NodeJS.LTS";          Cat=1; Sel=$false},
     @{Name="Notepad++";          Id="Notepad++.Notepad++";        Cat=1; Sel=$false},
     @{Name="Docker Desktop";     Id="Docker.DockerDesktop";       Cat=1; Sel=$false},
-
-    # Cat 2: Gaming / Social
     @{Name="Steam";              Id="Valve.Steam";                Cat=2; Sel=$false},
     @{Name="Discord";            Id="Discord.Discord";            Cat=2; Sel=$false},
     @{Name="Telegram";           Id="Telegram.TelegramDesktop";   Cat=2; Sel=$false},
-
-    # Cat 3: Media
     @{Name="VLC Media Player";   Id="VideoLAN.VLC";               Cat=3; Sel=$false},
     @{Name="Spotify";            Id="Spotify.Spotify";            Cat=3; Sel=$false},
     @{Name="OBS Studio";         Id="OBSProject.OBSStudio";       Cat=3; Sel=$false},
     @{Name="K-Lite Codec Pack";  Id="CodecGuide.K-LiteCodecPack.Standard"; Cat=3; Sel=$false},
     @{Name="Audacity";           Id="Audacity.Audacity";          Cat=3; Sel=$false},
     @{Name="GIMP";               Id="GIMP.GIMP";                  Cat=3; Sel=$false},
-
-    # Cat 4: Utilities
     @{Name="7-Zip";              Id="7zip.7zip";                  Cat=4; Sel=$false},
     @{Name="WinRAR";             Id="RARLab.WinRAR";              Cat=4; Sel=$false},
     @{Name="qBittorrent";        Id="qBittorrent.qBittorrent";    Cat=4; Sel=$false},
@@ -69,16 +47,12 @@ $apps = @(
     @{Name="ShareX";             Id="ShareX.ShareX";              Cat=4; Sel=$false},
     @{Name="Revo Uninstaller";   Id="VSRevoGroup.RevoUninstallerFree"; Cat=4; Sel=$false},
     @{Name="WizTree";            Id="AntibodySoftware.WizTree";   Cat=4; Sel=$false},
-
-    # Cat 5: System
     @{Name="DirectX Web Setup";  Id="Microsoft.DirectX";          Cat=5; Sel=$false},
     @{Name="Visual C++ Redist";  Id="Microsoft.VCRedist.2015+.x64"; Cat=5; Sel=$false},
     @{Name="CPU-Z";              Id="CPUID.CPU-Z";                Cat=5; Sel=$false},
     @{Name="GPU-Z";              Id="TechPowerUp.GPU-Z";          Cat=5; Sel=$false},
     @{Name="HWMonitor";          Id="CPUID.HWMonitor";            Cat=5; Sel=$false},
     @{Name="CrystalDiskInfo";    Id="CrystalDewWorld.CrystalDiskInfo"; Cat=5; Sel=$false},
-
-    # Cat 6: Productivity
     @{Name="Obsidian";           Id="Obsidian.Obsidian";          Cat=6; Sel=$false},
     @{Name="Notion";             Id="Notion.Notion";              Cat=6; Sel=$false}
 )
@@ -91,10 +65,9 @@ $xaml = @"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="WinKit - App Installer" Width="800" Height="580" 
         WindowStartupLocation="CenterScreen" Background="Transparent" Foreground="#FFFFFF"
-        WindowStyle="SingleBorderWindow" AllowsTransparency="False"
+        WindowStyle="None" AllowsTransparency="False"
         FontFamily="Segoe UI Variable Text, Segoe UI" FontSize="14">
     <Window.Resources>
-        <!-- TAB STYLE -->
         <Style TargetType="TabItem">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Foreground" Value="White"/>
@@ -106,7 +79,7 @@ $xaml = @"
                         <Border Name="Border" Background="{TemplateBinding Background}" CornerRadius="4" Padding="15,10">
                             <Grid>
                                 <ContentPresenter x:Name="ContentSite" VerticalAlignment="Center" HorizontalAlignment="Center" ContentSource="Header"/>
-                                <Border x:Name="Indicator" Height="3" CornerRadius="1.5" Background="#0067C0" VerticalAlignment="Bottom" Margin="0,0,0,-10" Visibility="Collapsed"/>
+                                <Border x:Name="Indicator" Height="3" CornerRadius="1.5" Background="#55C5FF" VerticalAlignment="Bottom" Margin="0,0,0,-10" Visibility="Collapsed"/>
                             </Grid>
                         </Border>
                         <ControlTemplate.Triggers>
@@ -130,7 +103,6 @@ $xaml = @"
             </Setter>
         </Style>
 
-        <!-- STANDARD BUTTON STYLE -->
         <Style TargetType="Button">
             <Setter Property="Background" Value="#2D2D2D"/>
             <Setter Property="Foreground" Value="White"/>
@@ -157,7 +129,6 @@ $xaml = @"
             </Setter>
         </Style>
 
-        <!-- PRIMARY BUTTON STYLE -->
         <Style TargetType="Button" x:Key="PrimaryButton" BasedOn="{StaticResource {x:Type Button}}">
             <Setter Property="Background" Value="#55C5FF"/>
             <Setter Property="Foreground" Value="Black"/>
@@ -181,7 +152,6 @@ $xaml = @"
             </Setter>
         </Style>
 
-        <!-- CHECKBOX STYLE -->
         <Style TargetType="CheckBox">
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="FontSize" Value="14"/>
@@ -215,39 +185,56 @@ $xaml = @"
             </Setter>
         </Style>
     </Window.Resources>
-    <Grid Margin="25">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
-        
-        <TextBlock Text="WinKit - App Installer" FontSize="32" FontWeight="SemiBold" Foreground="#FFFFFF" Margin="0,0,0,20"/>
-        
-        <TabControl Name="TabCats" Grid.Row="1" Background="Transparent" BorderThickness="0" Padding="15">
-        </TabControl>
-        
-        <Border Grid.Row="2" Background="#2D2D2D" BorderBrush="#353535" BorderThickness="1" CornerRadius="8" Padding="15" Margin="0,20,0,0">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                
-                <StackPanel Orientation="Horizontal" Grid.Column="0">
-                    <Button Name="BtnSelectAll" Content="Select All" Width="100" Height="35" Margin="0,0,10,0"/>
-                    <Button Name="BtnClearAll" Content="Clear All" Width="100" Height="35"/>
-                </StackPanel>
-                
-                <StackPanel Orientation="Horizontal" Grid.Column="2">
-                    <Button Name="BtnSave" Content="Save Preset" Width="100" Height="35" Margin="0,0,10,0"/>
-                    <Button Name="BtnLoad" Content="Load Preset" Width="100" Height="35" Margin="0,0,10,0"/>
-                    <Button Name="BtnInstall" Content="Install" Width="120" Height="35" Style="{StaticResource PrimaryButton}" FontWeight="Bold"/>
-                </StackPanel>
+    
+    <Border BorderThickness="1" BorderBrush="#353535" Background="Transparent" CornerRadius="0">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+            
+            <Grid Grid.Row="0" Name="TitleBar" Background="Transparent" Height="32">
+                <TextBlock Text="WinKit - App Installer" VerticalAlignment="Center" Margin="15,0,0,0" FontSize="12" Foreground="#AAAAAA" />
+                <Button Name="BtnClose" Content="✕" Width="46" HorizontalAlignment="Right" Background="Transparent" BorderThickness="0" Foreground="White" FontSize="12" Cursor="Arrow"/>
             </Grid>
-        </Border>
-    </Grid>
+            
+            <Grid Grid.Row="1" Background="#801E1E1E" Margin="0">
+                <Grid Margin="25,5,25,25">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    
+                    <TextBlock Text="App Installer" FontSize="32" FontWeight="SemiBold" Foreground="#FFFFFF" Margin="0,0,0,20"/>
+                    
+                    <TabControl Name="TabCats" Grid.Row="1" Background="Transparent" BorderThickness="0" Padding="15">
+                    </TabControl>
+                    
+                    <Border Grid.Row="2" Background="#602D2D2D" BorderBrush="#353535" BorderThickness="1" CornerRadius="8" Padding="15" Margin="0,20,0,0">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <StackPanel Orientation="Horizontal" Grid.Column="0">
+                                <Button Name="BtnSelectAll" Content="Select All" Width="100" Height="35" Margin="0,0,10,0"/>
+                                <Button Name="BtnClearAll" Content="Clear All" Width="100" Height="35"/>
+                            </StackPanel>
+                            
+                            <StackPanel Orientation="Horizontal" Grid.Column="2">
+                                <Button Name="BtnSave" Content="Save Preset" Width="100" Height="35" Margin="0,0,10,0"/>
+                                <Button Name="BtnLoad" Content="Load Preset" Width="100" Height="35" Margin="0,0,10,0"/>
+                                <Button Name="BtnInstall" Content="Install" Width="120" Height="35" Style="{StaticResource PrimaryButton}" FontWeight="Bold"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </Grid>
+        </Grid>
+    </Border>
 </Window>
 "@
 
@@ -260,9 +247,20 @@ $btnClearAll = $win.FindName("BtnClearAll")
 $btnSave = $win.FindName("BtnSave")
 $btnLoad = $win.FindName("BtnLoad")
 $btnInstall = $win.FindName("BtnInstall")
+$btnClose = $win.FindName("BtnClose")
+$titleBar = $win.FindName("TitleBar")
+
+$titleBar.Add_MouseLeftButtonDown({
+    param($sender, $e)
+    $win.DragMove()
+})
+
+$btnClose.Add_Click({
+    $win.DialogResult = $false
+    $win.Close()
+})
 
 $checkBoxes = @()
-
 for ($c = 0; $c -lt $cats.Count; $c++) {
     $tabItem = New-Object System.Windows.Controls.TabItem
     $tabItem.Header = $cats[$c]
@@ -271,89 +269,92 @@ for ($c = 0; $c -lt $cats.Count; $c++) {
     $wrap = New-Object System.Windows.Controls.WrapPanel
     $wrap.Margin = "5"
     
-    for ($i = 0; $i -lt $apps.Count; $i++) {
-        if ($apps[$i].Cat -eq $c) {
-            $chk = New-Object System.Windows.Controls.CheckBox
-            $chk.Content = $apps[$i].Name
-            $chk.Width = 220
-            $chk.Margin = "10"
-            $chk.FontSize = 14
-            $chk.Tag = $i
-            $chk.Foreground = "White"
-            $chk.IsChecked = $apps[$i].Sel
-            $checkBoxes += $chk
-            $wrap.Children.Add($chk) > $null
-        }
+    $catApps = $apps | Where-Object { $_.Cat -eq $c }
+    foreach ($app in $catApps) {
+        $chk = New-Object System.Windows.Controls.CheckBox
+        $chk.Content = $app.Name
+        $chk.IsChecked = $app.Sel
+        $chk.Tag = $app.Name
+        $chk.Width = 220
+        $wrap.Children.Add($chk) | Out-Null
+        $checkBoxes += $chk
     }
     
     $scroll.Content = $wrap
     $tabItem.Content = $scroll
-    $tabCats.Items.Add($tabItem) > $null
+    $tabCats.Items.Add($tabItem) | Out-Null
 }
 
-$btnSelectAll.Add_Click({
-    $curIdx = $tabCats.SelectedIndex
-    foreach ($chk in $checkBoxes) {
-        $appIdx = $chk.Tag
-        if ($apps[$appIdx].Cat -eq $curIdx) { $chk.IsChecked = $true }
-    }
-})
-
-$btnClearAll.Add_Click({
-    foreach ($chk in $checkBoxes) { $chk.IsChecked = $false }
-})
+$btnSelectAll.Add_Click({ foreach ($chk in $checkBoxes) { $chk.IsChecked = $true } })
+$btnClearAll.Add_Click({ foreach ($chk in $checkBoxes) { $chk.IsChecked = $false } })
 
 $btnSave.Add_Click({
-    $selIds = @()
+    $sel = @()
     foreach ($chk in $checkBoxes) {
-        if ($chk.IsChecked) { $selIds += $apps[$chk.Tag].Id }
+        if ($chk.IsChecked -eq $true) { $sel += $chk.Tag }
     }
-    if ($selIds) { $selIds | Out-File "$env:USERPROFILE\Documents\winkit-preset.txt" -Encoding utf8 }
-    [System.Windows.MessageBox]::Show("Preset saved to Documents\winkit-preset.txt", "WinKit", 0, 64)
+    $sel -join "`n" | Out-File -FilePath "$env:USERPROFILE\Documents\winkit-preset.txt" -Encoding utf8
+    [System.Windows.MessageBox]::Show("Preset saved to Documents\winkit-preset.txt!", "Success", 0, 64)
 })
-
 $btnLoad.Add_Click({
-    if (Test-Path "$env:USERPROFILE\Documents\winkit-preset.txt") {
-        $savedIds = Get-Content "$env:USERPROFILE\Documents\winkit-preset.txt"
+    $path = "$env:USERPROFILE\Documents\winkit-preset.txt"
+    if (Test-Path $path) {
+        $lines = Get-Content $path
         foreach ($chk in $checkBoxes) {
-            if ($savedIds -contains $apps[$chk.Tag].Id) { $chk.IsChecked = $true }
+            $chk.IsChecked = $lines -contains $chk.Tag
         }
-    } else {
-        [System.Windows.MessageBox]::Show("No preset found in Documents folder.", "WinKit", 0, 48)
     }
 })
 
 $btnInstall.Add_Click({
     foreach ($chk in $checkBoxes) {
-        $apps[$chk.Tag].Sel = $chk.IsChecked -eq $true
+        $name = $chk.Tag
+        for ($i=0; $i -lt $apps.Count; $i++) {
+            if ($apps[$i].Name -eq $name) { $apps[$i].Sel = ($chk.IsChecked -eq $true) }
+        }
     }
     $win.DialogResult = $true
     $win.Close()
 })
 
-# DWM Setup for Mica & Immersive Dark Mode
 Add-Type -TypeDefinition @"
 using System;
 using System.Runtime.InteropServices;
 public class Dwm {
+    [StructLayout(LayoutKind.Sequential)]
+    public struct MARGINS {
+        public int cxLeftWidth;
+        public int cxRightWidth;
+        public int cyTopHeight;
+        public int cyBottomHeight;
+    }
     [DllImport("dwmapi.dll")]
     public static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
+    [DllImport("dwmapi.dll")]
+    public static extern int DwmExtendFrameIntoClientArea(IntPtr hwnd, ref MARGINS margins);
 }
 "@ -ErrorAction Ignore
 
-$win.Add_Loaded({
+$win.Add_SourceInitialized({
     $helper = New-Object System.Windows.Interop.WindowInteropHelper($win)
     $hwnd = $helper.Handle
     
-    # 20 = DWMWA_USE_IMMERSIVE_DARK_MODE
+    $margins = New-Object Dwm+MARGINS
+    $margins.cxLeftWidth = -1
+    $margins.cxRightWidth = -1
+    $margins.cyTopHeight = -1
+    $margins.cyBottomHeight = -1
+    [Dwm]::DwmExtendFrameIntoClientArea($hwnd, [ref]$margins) | Out-Null
+    
     $trueVal = 1
     [Dwm]::DwmSetWindowAttribute($hwnd, 20, [ref]$trueVal, 4) | Out-Null
     
-    # 38 = DWMWA_SYSTEMBACKDROP_TYPE (2 = Mica, 3 = Acrylic)
     $backdrop = 2
     [Dwm]::DwmSetWindowAttribute($hwnd, 38, [ref]$backdrop, 4) | Out-Null
+    
+    $micaFallback = 1
+    [Dwm]::DwmSetWindowAttribute($hwnd, 1029, [ref]$micaFallback, 4) | Out-Null
 
-    # IMPORTANT: Clear WPF HwndSource Background to allow Mica to show through
     $hwndSource = [System.Windows.Interop.HwndSource]::FromHwnd($hwnd)
     if ($hwndSource -ne $null) {
         $hwndSource.CompositionTarget.BackgroundColor = [System.Windows.Media.Colors]::Transparent
@@ -363,53 +364,24 @@ $win.Add_Loaded({
 $res = $win.ShowDialog()
 if ($res -ne $true) { exit }
 
-$sel = @($apps | Where-Object { $_.Sel })
-if ($sel.Count -eq 0) { exit }
+Write-Host "=========================================" -ForegroundColor Cyan
+Write-Host " WinKit - Installing Selected Apps" -ForegroundColor Cyan
+Write-Host "=========================================" -ForegroundColor Cyan
+Write-Host ""
 
-# === INSTALL ===
-[Console]::Clear()
-Write-Host "`n  ==========================================================" -Fore Cyan
-Write-Host "  |              Installing apps...                        |" -Fore Cyan
-Write-Host "  ==========================================================`n" -Fore Cyan
+$toInstall = @()
+foreach ($app in $apps) { if ($app.Sel) { $toInstall += $app } }
 
-$ok = 0; $fail = 0; $done = 0
-$results = @()
+if ($toInstall.Count -eq 0) { exit }
 
-foreach ($a in $sel) {
-    $done++
-    Write-Host "  ----------------------------------------------------------" -Fore Cyan
-    Write-Host "   [$done/$($sel.Count)] " -Fore White -NoNewline
-    Write-Host "$($a.Name)" -Fore Yellow
-    Write-Host "   Package: $($a.Id)" -Fore DarkGray
-    Write-Host "  ----------------------------------------------------------" -Fore Cyan
-    Write-Host ""
-
-    winget install --id $a.Id -e --source winget --accept-package-agreements --accept-source-agreements
-
-    if ($LASTEXITCODE -eq 0) {
-        $ok++
-        Write-Host ""
-        Write-Host "   [OK] $($a.Name)" -Fore Green
-        $results += @{S="OK"; N=$a.Name}
-    } else {
-        $fail++
-        Write-Host ""
-        Write-Host "   [FAIL] $($a.Name)" -Fore Red
-        $results += @{S="FAIL"; N=$a.Name}
-    }
-    Write-Host ""
+$count = 1
+$total = $toInstall.Count
+foreach ($app in $toInstall) {
+    Write-Host "[$count/$total] Installing $($app.Name)..." -ForegroundColor Yellow
+    winget install --id=$($app.Id) --silent --accept-package-agreements --accept-source-agreements
+    if ($LASTEXITCODE -eq 0) { Write-Host "  Success: $($app.Name)" -ForegroundColor Green }
+    else { Write-Host "  Failed/Skipped: $($app.Name)" -ForegroundColor Red }
+    $count++
 }
 
-# === RESULTS ===
-Write-Host "`n  ==========================================================" -Fore Cyan
-Write-Host "  |              Installation Results                      |" -Fore Cyan
-Write-Host "  ==========================================================`n" -Fore Cyan
-foreach ($r in $results) {
-    if ($r.S -eq "OK") { Write-Host "     [OK]   $($r.N)" -Fore Green }
-    else { Write-Host "     [FAIL] $($r.N)" -Fore Red }
-}
-Write-Host "`n  ----------------------------------------------------------" -Fore Cyan
-Write-Host "   OK: $ok  |  Failed: $fail  |  Total: $($sel.Count)" -Fore White
-Write-Host "  ----------------------------------------------------------`n" -Fore Cyan
-Write-Host "  Press any key to exit..."
-[Console]::ReadKey($true) | Out-Null
+Start-Sleep -Seconds 3
