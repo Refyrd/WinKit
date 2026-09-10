@@ -98,7 +98,7 @@ winkit.bat
 | `1`-`9` | Toggle specific app on current page |
 | `Space` | Select / Deselect app |
 | `A` / `C` | Select all (current page) / Clear all selection |
-| `S` / `L` | Save / Load selection to `winkit-preset.txt` |
+| `S` / `L` | Save / Load selection to `Documents\winkit-preset.txt` |
 | `Enter` | Start installation |
 | `Esc` | Exit |
 

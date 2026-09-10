@@ -181,11 +181,11 @@ while (-not $doInstall) {
             "C"          { foreach ($a in $apps) { $a.Sel = $false } }
             "S"          {
                 $selIds = $apps | Where-Object { $_.Sel } | ForEach-Object { $_.Id }
-                if ($selIds) { $selIds | Out-File "winkit-preset.txt" -Encoding utf8 }
+                if ($selIds) { $selIds | Out-File "$env:USERPROFILE\Documents\winkit-preset.txt" -Encoding utf8 }
             }
             "L"          {
-                if (Test-Path "winkit-preset.txt") {
-                    $savedIds = Get-Content "winkit-preset.txt"
+                if (Test-Path "$env:USERPROFILE\Documents\winkit-preset.txt") {
+                    $savedIds = Get-Content "$env:USERPROFILE\Documents\winkit-preset.txt"
                     foreach ($a in $apps) { if ($savedIds -contains $a.Id) { $a.Sel = $true } }
                 }
             }
