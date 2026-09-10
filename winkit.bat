@@ -93,12 +93,74 @@ $xaml = @"
         WindowStartupLocation="CenterScreen" Background="#202020" Foreground="#FFFFFF"
         FontFamily="Segoe UI" FontSize="14">
     <Window.Resources>
+        <!-- TAB STYLE -->
         <Style TargetType="TabItem">
             <Setter Property="Background" Value="#2D2D2D"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="Padding" Value="15,10"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="FontSize" Value="15"/>
+            <Style.Triggers>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="#4CC2FF"/>
+                    <Setter Property="Foreground" Value="Black"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- BUTTON STYLE -->
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="#3E3E42"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#505050"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- CHECKBOX STYLE -->
+        <Style TargetType="CheckBox">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Margin" Value="10"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="CheckBox">
+                        <StackPanel Orientation="Horizontal">
+                            <Border x:Name="checkBoxBorder" Width="20" Height="20" 
+                                    BorderBrush="#888" BorderThickness="1.5" 
+                                    Background="#202020" CornerRadius="4" 
+                                    VerticalAlignment="Center">
+                                <Path x:Name="checkMark" Fill="Black" Visibility="Collapsed" 
+                                      Data="M 4,10 L 8,14 L 16,5 L 14,3 L 8,10 L 6,8 Z" Stretch="Fill" Margin="3"/>
+                            </Border>
+                            <ContentPresenter Margin="10,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="checkMark" Property="Visibility" Value="Visible"/>
+                                <Setter TargetName="checkBoxBorder" Property="Background" Value="#4CC2FF"/>
+                                <Setter TargetName="checkBoxBorder" Property="BorderBrush" Value="#4CC2FF"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="checkBoxBorder" Property="BorderBrush" Value="#4CC2FF"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
     </Window.Resources>
     <Grid Margin="25">
@@ -122,14 +184,14 @@ $xaml = @"
                 </Grid.ColumnDefinitions>
                 
                 <StackPanel Orientation="Horizontal" Grid.Column="0">
-                    <Button Name="BtnSelectAll" Content="Select All" Width="100" Height="35" Margin="0,0,10,0" Background="#3E3E42" Foreground="White" BorderThickness="0" Cursor="Hand"/>
-                    <Button Name="BtnClearAll" Content="Clear All" Width="100" Height="35" Background="#3E3E42" Foreground="White" BorderThickness="0" Cursor="Hand"/>
+                    <Button Name="BtnSelectAll" Content="Select All" Width="100" Height="35" Margin="0,0,10,0"/>
+                    <Button Name="BtnClearAll" Content="Clear All" Width="100" Height="35"/>
                 </StackPanel>
                 
                 <StackPanel Orientation="Horizontal" Grid.Column="2">
-                    <Button Name="BtnSave" Content="Save Preset" Width="100" Height="35" Margin="0,0,10,0" Background="#3E3E42" Foreground="White" BorderThickness="0" Cursor="Hand"/>
-                    <Button Name="BtnLoad" Content="Load Preset" Width="100" Height="35" Margin="0,0,10,0" Background="#3E3E42" Foreground="White" BorderThickness="0" Cursor="Hand"/>
-                    <Button Name="BtnInstall" Content="Install" Width="120" Height="35" Background="#4CC2FF" Foreground="Black" FontWeight="Bold" BorderThickness="0" Cursor="Hand"/>
+                    <Button Name="BtnSave" Content="Save Preset" Width="100" Height="35" Margin="0,0,10,0"/>
+                    <Button Name="BtnLoad" Content="Load Preset" Width="100" Height="35" Margin="0,0,10,0"/>
+                    <Button Name="BtnInstall" Content="Install" Width="120" Height="35" Background="#4CC2FF" Foreground="Black" FontWeight="Bold"/>
                 </StackPanel>
             </Grid>
         </Border>
