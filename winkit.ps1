@@ -1,4 +1,4 @@
-﻿param([switch]$Elevated)
+param([switch]$Elevated)
 
 # Auto-elevate and enforce STA if run directly
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
@@ -76,12 +76,11 @@ $xaml = @"
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="TabItem">
-                        <Border Name="Border" Background="{TemplateBinding Background}" CornerRadius="4" Padding="15,10">
-                            <Grid>
-                                <ContentPresenter x:Name="ContentSite" VerticalAlignment="Center" HorizontalAlignment="Center" ContentSource="Header"/>
-                                <Border x:Name="Indicator" Height="3" CornerRadius="1.5" Background="#55C5FF" VerticalAlignment="Bottom" Margin="0,0,0,-10" Visibility="Collapsed"/>
-                            </Grid>
-                        </Border>
+                        <Grid>
+                            <Border Name="Border" Background="{TemplateBinding Background}" CornerRadius="4"/>
+                            <ContentPresenter x:Name="ContentSite" VerticalAlignment="Center" HorizontalAlignment="Center" ContentSource="Header" Margin="15,10,15,12"/>
+                            <Border x:Name="Indicator" Height="3" CornerRadius="1.5" Background="#55C5FF" VerticalAlignment="Bottom" Margin="12,0,12,2" Visibility="Collapsed"/>
+                        </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsSelected" Value="True">
                                 <Setter TargetName="Border" Property="Background" Value="#1AFFFFFF"/>
@@ -186,7 +185,7 @@ $xaml = @"
         </Style>
     </Window.Resources>
     
-    <Border BorderThickness="1" BorderBrush="#353535" Background="Transparent" CornerRadius="0">
+    <Border BorderThickness="0" Background="Transparent" CornerRadius="0">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
