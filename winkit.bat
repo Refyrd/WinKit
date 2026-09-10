@@ -90,22 +90,44 @@ $xaml = @"
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="WinKit - App Installer" Width="800" Height="580" 
-        WindowStartupLocation="CenterScreen" Background="#202020" Foreground="#FFFFFF"
+        WindowStartupLocation="CenterScreen" Background="Transparent" Foreground="#FFFFFF"
+        WindowStyle="SingleBorderWindow" AllowsTransparency="False"
         FontFamily="Segoe UI Variable Text, Segoe UI" FontSize="14">
     <Window.Resources>
         <!-- TAB STYLE -->
         <Style TargetType="TabItem">
-            <Setter Property="Background" Value="#2D2D2D"/>
+            <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Foreground" Value="White"/>
-            <Setter Property="Padding" Value="15,10"/>
-            <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="FontSize" Value="15"/>
-            <Style.Triggers>
-                <Trigger Property="IsSelected" Value="True">
-                    <Setter Property="Background" Value="#0067C0"/>
-                    <Setter Property="Foreground" Value="White"/>
-                </Trigger>
-            </Style.Triggers>
+            <Setter Property="Margin" Value="0,0,5,0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabItem">
+                        <Border Name="Border" Background="{TemplateBinding Background}" CornerRadius="4" Padding="15,10">
+                            <Grid>
+                                <ContentPresenter x:Name="ContentSite" VerticalAlignment="Center" HorizontalAlignment="Center" ContentSource="Header"/>
+                                <Border x:Name="Indicator" Height="3" CornerRadius="1.5" Background="#0067C0" VerticalAlignment="Bottom" Margin="0,0,0,-10" Visibility="Collapsed"/>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="#1AFFFFFF"/>
+                                <Setter TargetName="Indicator" Property="Visibility" Value="Visible"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="#0DFFFFFF"/>
+                            </Trigger>
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="IsSelected" Value="True"/>
+                                    <Condition Property="IsMouseOver" Value="True"/>
+                                </MultiTrigger.Conditions>
+                                <Setter TargetName="Border" Property="Background" Value="#1AFFFFFF"/>
+                            </MultiTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
         <!-- STANDARD BUTTON STYLE -->
@@ -137,20 +159,21 @@ $xaml = @"
 
         <!-- PRIMARY BUTTON STYLE -->
         <Style TargetType="Button" x:Key="PrimaryButton" BasedOn="{StaticResource {x:Type Button}}">
-            <Setter Property="Background" Value="#0067C0"/>
+            <Setter Property="Background" Value="#60CDFF"/>
+            <Setter Property="Foreground" Value="Black"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}">
+                        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="4" Padding="{TemplateBinding Padding}">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#1884D8"/>
+                                <Setter Property="Background" Value="#86D6FF"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter Property="Background" Value="#005A9E"/>
+                                <Setter Property="Background" Value="#4CB8FF"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -201,7 +224,7 @@ $xaml = @"
         
         <TextBlock Text="WinKit - App Installer" FontSize="32" FontWeight="SemiBold" Foreground="#FFFFFF" Margin="0,0,0,20"/>
         
-        <TabControl Name="TabCats" Grid.Row="1" Background="#202020" BorderThickness="0" Padding="15">
+        <TabControl Name="TabCats" Grid.Row="1" Background="Transparent" BorderThickness="0" Padding="15">
         </TabControl>
         
         <Border Grid.Row="2" Background="#2D2D2D" BorderBrush="#353535" BorderThickness="1" CornerRadius="8" Padding="15" Margin="0,20,0,0">
@@ -306,6 +329,29 @@ $btnInstall.Add_Click({
     }
     $win.DialogResult = $true
     $win.Close()
+})
+
+# DWM Setup for Mica & Immersive Dark Mode
+Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+public class Dwm {
+    [DllImport("dwmapi.dll")]
+    public static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
+}
+"@ -ErrorAction Ignore
+
+$win.Add_Loaded({
+    $helper = New-Object System.Windows.Interop.WindowInteropHelper($win)
+    $hwnd = $helper.Handle
+    
+    # 20 = DWMWA_USE_IMMERSIVE_DARK_MODE
+    $trueVal = 1
+    [Dwm]::DwmSetWindowAttribute($hwnd, 20, [ref]$trueVal, 4) | Out-Null
+    
+    # 38 = DWMWA_SYSTEMBACKDROP_TYPE (2 = Mica, 3 = Acrylic)
+    $backdrop = 2
+    [Dwm]::DwmSetWindowAttribute($hwnd, 38, [ref]$backdrop, 4) | Out-Null
 })
 
 $res = $win.ShowDialog()
