@@ -159,7 +159,7 @@ $xaml = @"
 
         <!-- PRIMARY BUTTON STYLE -->
         <Style TargetType="Button" x:Key="PrimaryButton" BasedOn="{StaticResource {x:Type Button}}">
-            <Setter Property="Background" Value="#60CDFF"/>
+            <Setter Property="Background" Value="#55C5FF"/>
             <Setter Property="Foreground" Value="Black"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Template">
@@ -170,10 +170,10 @@ $xaml = @"
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#86D6FF"/>
+                                <Setter Property="Background" Value="#75D2FF"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter Property="Background" Value="#4CB8FF"/>
+                                <Setter Property="Background" Value="#30B5FF"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -195,7 +195,7 @@ $xaml = @"
                                     BorderBrush="#3D3D3D" BorderThickness="1.5" 
                                     Background="#2D2D2D" CornerRadius="4" 
                                     VerticalAlignment="Center">
-                                <Path x:Name="checkMark" Fill="White" Visibility="Collapsed" 
+                                <Path x:Name="checkMark" Fill="Black" Visibility="Collapsed" 
                                       Data="M 4,10 L 8,14 L 16,5 L 14,3 L 8,10 L 6,8 Z" Stretch="Fill" Margin="3"/>
                             </Border>
                             <ContentPresenter Margin="10,0,0,0" VerticalAlignment="Center"/>
@@ -203,11 +203,11 @@ $xaml = @"
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsChecked" Value="True">
                                 <Setter TargetName="checkMark" Property="Visibility" Value="Visible"/>
-                                <Setter TargetName="checkBoxBorder" Property="Background" Value="#0067C0"/>
-                                <Setter TargetName="checkBoxBorder" Property="BorderBrush" Value="#0067C0"/>
+                                <Setter TargetName="checkBoxBorder" Property="Background" Value="#55C5FF"/>
+                                <Setter TargetName="checkBoxBorder" Property="BorderBrush" Value="#55C5FF"/>
                             </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="checkBoxBorder" Property="BorderBrush" Value="#1884D8"/>
+                                <Setter TargetName="checkBoxBorder" Property="BorderBrush" Value="#75D2FF"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -352,6 +352,12 @@ $win.Add_Loaded({
     # 38 = DWMWA_SYSTEMBACKDROP_TYPE (2 = Mica, 3 = Acrylic)
     $backdrop = 2
     [Dwm]::DwmSetWindowAttribute($hwnd, 38, [ref]$backdrop, 4) | Out-Null
+
+    # IMPORTANT: Clear WPF HwndSource Background to allow Mica to show through
+    $hwndSource = [System.Windows.Interop.HwndSource]::FromHwnd($hwnd)
+    if ($hwndSource -ne $null) {
+        $hwndSource.CompositionTarget.BackgroundColor = [System.Windows.Media.Colors]::Transparent
+    }
 })
 
 $res = $win.ShowDialog()
