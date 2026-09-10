@@ -142,7 +142,11 @@ function Draw {
     Write-Host "   [Enter]" -Fore Green -NoNewline
     Write-Host " install  " -Fore DarkGray -NoNewline
     Write-Host "[C]" -Fore Yellow -NoNewline
-    Write-Host " clear   " -Fore DarkGray -NoNewline
+    Write-Host " clear  " -Fore DarkGray -NoNewline
+    Write-Host "[S]" -Fore Magenta -NoNewline
+    Write-Host "/" -Fore DarkGray -NoNewline
+    Write-Host "[L]" -Fore Magenta -NoNewline
+    Write-Host " preset  " -Fore DarkGray -NoNewline
     Write-Host "[Esc]" -Fore Red -NoNewline
     Write-Host " exit" -Fore DarkGray
 }
@@ -175,6 +179,16 @@ while (-not $doInstall) {
                 foreach ($idx in $items) { $apps[$idx].Sel = -not $allSelected } 
             }
             "C"          { foreach ($a in $apps) { $a.Sel = $false } }
+            "S"          {
+                $selIds = $apps | Where-Object { $_.Sel } | Select-Object -ExpandProperty Id
+                if ($selIds) { $selIds | Out-File "winkit-preset.txt" -Encoding utf8 }
+            }
+            "L"          {
+                if (Test-Path "winkit-preset.txt") {
+                    $savedIds = Get-Content "winkit-preset.txt"
+                    foreach ($a in $apps) { if ($savedIds -contains $a.Id) { $a.Sel = $true } }
+                }
+            }
             "Escape"     { exit }
             "Enter" {
                 $sel = $apps | Where-Object { $_.Sel }
