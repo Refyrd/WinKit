@@ -261,6 +261,31 @@ $xaml = @"
                 </Grid>
             </Border>
         </Grid>
+        
+        <Grid Name="ProgressOverlay" Visibility="Collapsed" Background="{DynamicResource AppBg}">
+            <Border Background="{DynamicResource ControlBg}" BorderBrush="{DynamicResource BorderClr}" BorderThickness="1" CornerRadius="8" Margin="40" Padding="20">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Name="LblProgressTitle" Text="Installing Apps..." FontSize="24" FontWeight="SemiBold" Foreground="{DynamicResource AppText}" Margin="0,0,0,15"/>
+                    <TextBlock Name="LblProgress" Text="Preparing..." FontSize="16" Foreground="{DynamicResource AppText}" Margin="0,0,0,10" Grid.Row="1"/>
+                    <ProgressBar Name="PbInstall" Height="4" IsIndeterminate="True" Grid.Row="1" VerticalAlignment="Bottom" Margin="0,0,0,0" BorderThickness="0" Background="{DynamicResource ControlHover}" Foreground="#55C5FF"/>
+
+                    <Grid Grid.Row="2" Margin="0,15,0,15">
+                        <TextBox Name="TxtLog" Background="#1E1E1E" Foreground="#CCCCCC" FontFamily="Consolas" FontSize="13" IsReadOnly="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" BorderThickness="0" Padding="10"/>
+                        <ScrollViewer Name="SummaryScroll" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+                            <StackPanel Name="SummaryPanel" Orientation="Vertical"/>
+                        </ScrollViewer>
+                    </Grid>
+
+                    <Button Name="BtnCancelInstall" Grid.Row="3" Content="Cancel" Width="150" Height="35" HorizontalAlignment="Right"/>
+                </Grid>
+            </Border>
+        </Grid>
     </Grid>
 </Window>
 "@
@@ -275,6 +300,14 @@ $btnSave = $win.FindName("BtnSave")
 $btnLoad = $win.FindName("BtnLoad")
 $btnInstall = $win.FindName("BtnInstall")
 $btnTheme = $win.FindName("BtnTheme")
+$ProgressOverlay = $win.FindName("ProgressOverlay")
+$LblProgressTitle = $win.FindName("LblProgressTitle")
+$LblProgress = $win.FindName("LblProgress")
+$PbInstall = $win.FindName("PbInstall")
+$TxtLog = $win.FindName("TxtLog")
+$SummaryScroll = $win.FindName("SummaryScroll")
+$SummaryPanel = $win.FindName("SummaryPanel")
+$BtnCancelInstall = $win.FindName("BtnCancelInstall")
 
 # ===== THEME PALETTES =====
 $regKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize"
@@ -376,15 +409,260 @@ $btnLoad.Add_Click({
     }
 })
 
+function DoEvents {
+    $frame = New-Object System.Windows.Threading.DispatcherFrame
+    [System.Windows.Threading.Dispatcher]::CurrentDispatcher.BeginInvoke([System.Windows.Threading.DispatcherPriority]::Background, [System.Action]( { $frame.Continue = $false } )) | Out-Null
+    [System.Windows.Threading.Dispatcher]::PushFrame($frame)
+}
+
+$global:cancelInstall = $false
+
 $btnInstall.Add_Click({
+    $toInstall = @()
     foreach ($chk in $checkBoxes) {
-        $name = $chk.Tag
-        for ($i=0; $i -lt $apps.Count; $i++) {
-            if ($apps[$i].Name -eq $name) { $apps[$i].Sel = ($chk.IsChecked -eq $true) }
+        if ($chk.IsChecked -eq $true) {
+            $name = $chk.Tag
+            foreach ($app in $apps) {
+                if ($app.Name -eq $name) {
+                    $toInstall += $app
+                    break
+                }
+            }
         }
     }
-    $win.DialogResult = $true
-    $win.Close()
+
+    if ($toInstall.Count -eq 0) { return }
+
+    $ProgressOverlay.Visibility = "Visible"
+    $TxtLog.Visibility = "Visible"
+    $SummaryScroll.Visibility = "Collapsed"
+    $SummaryPanel.Children.Clear()
+    
+    if (-not $script:isDark) {
+        $TxtLog.Background = $brushConverter.ConvertFromString("#F0F0F0")
+        $TxtLog.Foreground = $brushConverter.ConvertFromString("#111111")
+    } else {
+        $TxtLog.Background = $brushConverter.ConvertFromString("#1E1E1E")
+        $TxtLog.Foreground = $brushConverter.ConvertFromString("#CCCCCC")
+    }
+    
+    $global:cancelInstall = $false
+    $TxtLog.Text = ""
+    $BtnCancelInstall.Content = "Cancel"
+    $BtnCancelInstall.IsEnabled = $true
+    $LblProgressTitle.Text = "Installing Apps..."
+    $PbInstall.IsIndeterminate = $true
+    $PbInstall.Visibility = "Visible"
+
+    $installResults = @()
+
+    $count = 0
+    foreach ($app in $toInstall) {
+        $appLog = ""
+        if ($global:cancelInstall) {
+            $TxtLog.AppendText("`n[!] Installation Cancelled by User.`n")
+            $TxtLog.ScrollToEnd()
+            $installResults += @{ App = $app; Code = -1; Cancelled = $true; Log = "" }
+            continue
+        }
+        $count++
+        $LblProgress.Text = "Installing ($count / $($toInstall.Count)): $($app.Name)"
+        $TxtLog.AppendText("`n---> Starting: $($app.Name)`n")
+        $TxtLog.ScrollToEnd()
+        DoEvents
+
+        $proc = New-Object System.Diagnostics.Process
+        $proc.StartInfo.FileName = "winget"
+        $proc.StartInfo.Arguments = "install --id=$($app.Id) --silent --disable-interactivity --accept-package-agreements --accept-source-agreements"
+        $proc.StartInfo.RedirectStandardOutput = $true
+        $proc.StartInfo.RedirectStandardError = $true
+        $proc.StartInfo.UseShellExecute = $false
+        $proc.StartInfo.CreateNoWindow = $true
+        $proc.StartInfo.StandardOutputEncoding = [System.Text.Encoding]::UTF8
+        $proc.StartInfo.StandardErrorEncoding = [System.Text.Encoding]::UTF8
+
+        $proc.Start() | Out-Null
+        
+        $lineBuffer = ""
+
+        while (-not $proc.HasExited) {
+            if ($global:cancelInstall) {
+                try { $proc.Kill() } catch {}
+                break
+            }
+            while ($proc.StandardOutput.Peek() -gt -1) {
+                $char = [char]$proc.StandardOutput.Read()
+                $TxtLog.AppendText($char)
+                $appLog += $char
+                
+                if ($char -eq "`n" -or $char -eq "`r") {
+                    if ($lineBuffer -match "(\d+(?:\.\d+)?\s*[KMG]B\s*/\s*\d+(?:\.\d+)?\s*[KMG]B)") {
+                        $LblProgress.Text = "Installing ($count / $($toInstall.Count)): $($app.Name) - $($matches[1])"
+                    } elseif ($lineBuffer -match "(\d+\s*%)") {
+                        $LblProgress.Text = "Installing ($count / $($toInstall.Count)): $($app.Name) - $($matches[1])"
+                    }
+                    $lineBuffer = ""
+                } else {
+                    $lineBuffer += $char
+                }
+                
+                $TxtLog.ScrollToEnd()
+            }
+            DoEvents
+            Start-Sleep -Milliseconds 20
+        }
+
+        if (-not $global:cancelInstall) {
+            $out = $proc.StandardOutput.ReadToEnd()
+            $err = $proc.StandardError.ReadToEnd()
+            if ($out) { $TxtLog.AppendText($out); $appLog += $out }
+            if ($err) { $TxtLog.AppendText($err); $appLog += $err }
+            $TxtLog.AppendText("`n---> Done: $($app.Name) (Exit Code: $($proc.ExitCode))`n")
+            $TxtLog.ScrollToEnd()
+            $installResults += @{ App = $app; Code = $proc.ExitCode; Cancelled = $false; Log = $appLog }
+            DoEvents
+        } else {
+            $installResults += @{ App = $app; Code = -1; Cancelled = $true; Log = $appLog }
+        }
+    }
+
+    $TxtLog.Visibility = "Collapsed"
+    $PbInstall.Visibility = "Collapsed"
+    $SummaryScroll.Visibility = "Visible"
+
+    if ($global:cancelInstall) {
+        $LblProgressTitle.Text = "Installation Aborted"
+    } else {
+        $LblProgressTitle.Text = "Installation Complete"
+    }
+    
+    $PbInstall.IsIndeterminate = $false
+    $PbInstall.Value = 100
+    $LblProgress.Text = "Finished!"
+    
+    $global:allLogControls = @()
+
+    foreach ($res in $installResults) {
+        $color = "#28A745"
+        $code = $res.Code
+        $logStr = $res.Log
+        
+        $isUpToDate = ($code -eq -1978335220 -or $code -eq 2316632076 -or $code -eq -1978335189 -or $code -eq 2316632107 -or ($logStr -match "No newer package versions" -or $logStr -match "No available upgrade found"))
+        
+        if ($res.Cancelled) { $color = "#FFC107" }
+        elseif ($code -ne 0 -and -not $isUpToDate) { $color = "#DC3545" }
+        
+        $desc = "Successfully installed"
+        if ($res.Cancelled) { $desc = "Skipped - you hit the brakes!" }
+        elseif ($isUpToDate) { $desc = "Already up to date (Nothing to do here)" }
+        elseif ($code -eq 1618) { $desc = "Busy! Another installation is running (Code 1618)" }
+        elseif ($code -eq 1602 -or $code -eq -2147023673 -or $code -eq 2147943623) { $desc = "Halted! Check logs (Cancelled or UAC denied)" }
+        elseif ($code -eq 1603) { $desc = "Fatal crash! Check the logs for clues (Code 1603)" }
+        elseif ($code -ne 0) {
+            $desc = "Oops, something broke! Check logs (Code: $code)"
+        }
+
+        $bdr = New-Object System.Windows.Controls.Border
+        $bdr.BorderThickness = "4,0,0,0"
+        $bdr.BorderBrush = $brushConverter.ConvertFromString($color)
+        $bdr.Margin = "0,0,0,8"
+        $bdr.Padding = "10"
+        $bdr.CornerRadius = "4"
+        if (-not $script:isDark) { $bdr.Background = $brushConverter.ConvertFromString("#0A000000") }
+        else { $bdr.Background = $brushConverter.ConvertFromString("#15FFFFFF") }
+
+        $sp = New-Object System.Windows.Controls.StackPanel
+        $t1 = New-Object System.Windows.Controls.TextBlock
+        $t1.Text = $res.App.Name
+        $t1.FontWeight = [System.Windows.FontWeights]::Bold
+        $t1.SetResourceReference([System.Windows.Controls.TextBlock]::ForegroundProperty, "AppText")
+        $t1.FontSize = 14
+
+        $t2 = New-Object System.Windows.Controls.TextBlock
+        $t2.Text = $desc
+        $t2.Foreground = $brushConverter.ConvertFromString($color)
+        $t2.FontSize = 12
+        $t2.Margin = "0,4,0,0"
+        $t2.TextWrapping = "Wrap"
+
+        $sp.Children.Add($t1) | Out-Null
+        $sp.Children.Add($t2) | Out-Null
+        
+        if ($logStr -and $logStr.Trim().Length -gt 0) {
+            $logBdr = New-Object System.Windows.Controls.Border
+            $logBdr.CornerRadius = "6"
+            $logBdr.Margin = "0,10,0,0"
+            $logBdr.Visibility = "Collapsed"
+            if (-not $script:isDark) { $logBdr.Background = $brushConverter.ConvertFromString("#F0F0F0") }
+            else { $logBdr.Background = $brushConverter.ConvertFromString("#181818") }
+
+            $tLog = New-Object System.Windows.Controls.TextBox
+            $tLog.Text = $logStr.Trim()
+            $tLog.Background = [System.Windows.Media.Brushes]::Transparent
+            if (-not $script:isDark) { $tLog.Foreground = $brushConverter.ConvertFromString("#111111") }
+            else { $tLog.Foreground = $brushConverter.ConvertFromString("#EEEEEE") }
+            $tLog.TextWrapping = "Wrap"
+            $tLog.FontFamily = "Consolas"
+            $tLog.FontSize = 12
+            $tLog.Height = 150
+            $tLog.VerticalScrollBarVisibility = "Auto"
+            $tLog.IsReadOnly = $true
+            $tLog.BorderThickness = 0
+            $tLog.Padding = "8"
+            
+            $logBdr.Child = $tLog
+
+            $btnLog = New-Object System.Windows.Controls.Button
+            $btnLog.Content = "Show Log"
+            $btnLog.Padding = "10,2,10,2"
+            $btnLog.Margin = "0,6,0,0"
+            $btnLog.HorizontalAlignment = "Left"
+            $btnLog.Background = $brushConverter.ConvertFromString("Transparent")
+            $btnLog.Foreground = $brushConverter.ConvertFromString("#55C5FF")
+            $btnLog.BorderThickness = 0
+            $btnLog.Cursor = [System.Windows.Input.Cursors]::Hand
+            
+            $btnLog.Tag = @($logBdr, $tLog)
+            $global:allLogControls += $btnLog
+            
+            $btnLog.Add_Click({
+                $targetBdr = $this.Tag[0]
+                $targetTxt = $this.Tag[1]
+                $isOpening = ($targetBdr.Visibility -eq "Collapsed")
+                
+                foreach ($btn in $global:allLogControls) {
+                    $btn.Tag[0].Visibility = "Collapsed"
+                    $btn.Content = "Show Log"
+                }
+                
+                if ($isOpening) {
+                    $targetBdr.Visibility = "Visible"
+                    $this.Content = "Hide Log"
+                    $targetTxt.ScrollToEnd()
+                }
+            })
+
+            $sp.Children.Add($btnLog) | Out-Null
+            $sp.Children.Add($logBdr) | Out-Null
+        }
+
+        $bdr.Child = $sp
+        $SummaryPanel.Children.Add($bdr) | Out-Null
+    }
+
+    $BtnCancelInstall.Content = "Close"
+    $BtnCancelInstall.IsEnabled = $true
+    $global:cancelInstall = $true
+})
+
+$BtnCancelInstall.Add_Click({
+    if ($global:cancelInstall) {
+        $ProgressOverlay.Visibility = "Collapsed"
+    } else {
+        $global:cancelInstall = $true
+        $BtnCancelInstall.Content = "Cancelling..."
+        $BtnCancelInstall.IsEnabled = $false
+    }
 })
 
 Add-Type -TypeDefinition @"
@@ -431,31 +709,8 @@ $win.Add_SourceInitialized({
     }
 })
 
-$res = $win.ShowDialog()
+$win.ShowDialog() | Out-Null
 
-# Restore console window
+# Restore console window before exit
 [Console.Window]::ShowWindow([Console.Window]::GetConsoleWindow(), 5) | Out-Null
-
-if ($res -ne $true) { exit }
-
-Write-Host "=========================================" -ForegroundColor Cyan
-Write-Host " WinKit - Installing Selected Apps" -ForegroundColor Cyan
-Write-Host "=========================================" -ForegroundColor Cyan
-Write-Host ""
-
-$toInstall = @()
-foreach ($app in $apps) { if ($app.Sel) { $toInstall += $app } }
-
-if ($toInstall.Count -eq 0) { exit }
-
-$count = 1
-$total = $toInstall.Count
-foreach ($app in $toInstall) {
-    Write-Host "[$count/$total] Installing $($app.Name)..." -ForegroundColor Yellow
-    winget install --id=$($app.Id) --silent --accept-package-agreements --accept-source-agreements
-    if ($LASTEXITCODE -eq 0) { Write-Host "  Success: $($app.Name)" -ForegroundColor Green }
-    else { Write-Host "  Failed/Skipped: $($app.Name)" -ForegroundColor Red }
-    $count++
-}
-
-Start-Sleep -Seconds 3
+exit
