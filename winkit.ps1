@@ -69,14 +69,28 @@ $xaml = @"
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="WinKit - App Installer" Width="800" Height="580" 
-        WindowStartupLocation="CenterScreen" Background="Transparent" Foreground="#FFFFFF"
+        WindowStartupLocation="CenterScreen" Background="Transparent" Foreground="{DynamicResource AppText}"
         WindowStyle="SingleBorderWindow" AllowsTransparency="False"
         FontFamily="Segoe UI Variable Text, Segoe UI" FontSize="14">
     <Window.Resources>
+        <SolidColorBrush x:Key="AppBg"          Color="#B31E1E1E"/>
+        <SolidColorBrush x:Key="AppText"        Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="ControlBg"      Color="#2D2D2D"/>
+        <SolidColorBrush x:Key="BorderClr"      Color="#3D3D3D"/>
+        <SolidColorBrush x:Key="HoverBg"        Color="#353535"/>
+        <SolidColorBrush x:Key="PressedBg"      Color="#282828"/>
+        <SolidColorBrush x:Key="BottomBarBg"    Color="#602D2D2D"/>
+        <SolidColorBrush x:Key="TabSelBg"       Color="#1AFFFFFF"/>
+        <SolidColorBrush x:Key="TabHoverBg"     Color="#0DFFFFFF"/>
+        <SolidColorBrush x:Key="ChkBg"          Color="#2D2D2D"/>
+        <SolidColorBrush x:Key="ChkBorder"      Color="#3D3D3D"/>
+        <SolidColorBrush x:Key="ChkHoverBorder" Color="#75D2FF"/>
+
         <Style TargetType="TabControl">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Padding" Value="15"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
             <Setter Property="ItemsPanel">
                 <Setter.Value>
                     <ItemsPanelTemplate>
@@ -88,7 +102,7 @@ $xaml = @"
 
         <Style TargetType="TabItem">
             <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Foreground" Value="{DynamicResource AppText}"/>
             <Setter Property="FontSize" Value="15"/>
             <Setter Property="Margin" Value="0"/>
             <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
@@ -106,7 +120,7 @@ $xaml = @"
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="TabBorder" Property="Background" Value="#1AFFFFFF"/>
+                                <Setter TargetName="TabBorder" Property="Background" Value="{DynamicResource TabSelBg}"/>
                                 <Setter TargetName="SelectionIndicator" Property="Visibility" Value="Visible"/>
                             </Trigger>
                             <MultiTrigger>
@@ -114,7 +128,7 @@ $xaml = @"
                                     <Condition Property="IsMouseOver" Value="True"/>
                                     <Condition Property="IsSelected" Value="False"/>
                                 </MultiTrigger.Conditions>
-                                <Setter TargetName="TabBorder" Property="Background" Value="#0DFFFFFF"/>
+                                <Setter TargetName="TabBorder" Property="Background" Value="{DynamicResource TabHoverBg}"/>
                             </MultiTrigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -123,12 +137,13 @@ $xaml = @"
         </Style>
 
         <Style TargetType="Button">
-            <Setter Property="Background" Value="#2D2D2D"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="BorderBrush" Value="#3D3D3D"/>
+            <Setter Property="Background" Value="{DynamicResource ControlBg}"/>
+            <Setter Property="Foreground" Value="{DynamicResource AppText}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderClr}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding" Value="12,6"/>
             <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
@@ -137,10 +152,10 @@ $xaml = @"
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#353535"/>
+                                <Setter Property="Background" Value="{DynamicResource HoverBg}"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter Property="Background" Value="#282828"/>
+                                <Setter Property="Background" Value="{DynamicResource PressedBg}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -155,7 +170,7 @@ $xaml = @"
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="4" Padding="{TemplateBinding Padding}">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
@@ -172,7 +187,7 @@ $xaml = @"
         </Style>
 
         <Style TargetType="CheckBox">
-            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Foreground" Value="{DynamicResource AppText}"/>
             <Setter Property="FontSize" Value="14"/>
             <Setter Property="Margin" Value="10"/>
             <Setter Property="Cursor" Value="Hand"/>
@@ -181,7 +196,7 @@ $xaml = @"
                 <Setter.Value>
                     <ControlTemplate TargetType="CheckBox">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <Border x:Name="MainBorder" Width="20" Height="20" Background="#2D2D2D" BorderBrush="#3D3D3D" BorderThickness="1" CornerRadius="4">
+                            <Border x:Name="MainBorder" Width="20" Height="20" Background="{DynamicResource ChkBg}" BorderBrush="{DynamicResource ChkBorder}" BorderThickness="1" CornerRadius="4">
                                 <Path x:Name="CheckMark" Width="11" Height="8" Stretch="Uniform" Data="M 0,4 L 4,8 L 11,0" Stroke="#000000" StrokeThickness="1.8" StrokeEndLineCap="Round" StrokeStartLineCap="Round" StrokeLineJoin="Round" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed"/>
                             </Border>
                             <ContentPresenter Margin="8,0,0,0" VerticalAlignment="Center"/>
@@ -193,7 +208,7 @@ $xaml = @"
                                 <Setter TargetName="CheckMark" Property="Visibility" Value="Visible"/>
                             </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="MainBorder" Property="BorderBrush" Value="#75D2FF"/>
+                                <Setter TargetName="MainBorder" Property="BorderBrush" Value="{DynamicResource ChkHoverBorder}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -202,7 +217,7 @@ $xaml = @"
         </Style>
     </Window.Resources>
     
-    <Grid Background="#801E1E1E">
+    <Grid Background="Transparent">
         <Grid Margin="25">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
@@ -210,12 +225,22 @@ $xaml = @"
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
             
-            <TextBlock Text="App Installer" FontSize="32" FontWeight="SemiBold" Foreground="#FFFFFF" Margin="0,0,0,20"/>
+            <Grid Grid.Row="0" Margin="0,0,0,20">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="App Installer" FontSize="32" FontWeight="SemiBold" Foreground="{DynamicResource AppText}" VerticalAlignment="Center"/>
+                <Button x:Name="BtnTheme" Grid.Column="1" Width="36" Height="36" Padding="0" Background="Transparent" BorderThickness="0" FocusVisualStyle="{x:Null}" Cursor="Hand" VerticalAlignment="Center">
+                    <Path Data="M 12,22 C 17.52,22 22,17.52 22,12 C 22,6.48 17.52,2 12,2 C 6.48,2 2,6.48 2,12 C 2,17.52 6.48,22 12,22 Z M 12,20 C 7.58,20 4,16.42 4,12 C 4,7.58 7.58,4 12,4 L 12,20 Z" 
+                          Fill="{DynamicResource AppText}" Stretch="Uniform" Margin="6"/>
+                </Button>
+            </Grid>
             
-            <TabControl Name="TabCats" Grid.Row="1" Background="Transparent" BorderThickness="0" Padding="15">
+            <TabControl Name="TabCats" Grid.Row="1" Background="Transparent" BorderThickness="0" Padding="15" FocusVisualStyle="{x:Null}">
             </TabControl>
             
-            <Border Grid.Row="2" Background="#602D2D2D" BorderBrush="#353535" BorderThickness="1" CornerRadius="8" Padding="15" Margin="0,20,0,0">
+            <Border Grid.Row="2" Background="{DynamicResource BottomBarBg}" BorderBrush="{DynamicResource BorderClr}" BorderThickness="1" CornerRadius="8" Padding="15" Margin="0,20,0,0">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
@@ -249,6 +274,60 @@ $btnClearAll = $win.FindName("BtnClearAll")
 $btnSave = $win.FindName("BtnSave")
 $btnLoad = $win.FindName("BtnLoad")
 $btnInstall = $win.FindName("BtnInstall")
+$btnTheme = $win.FindName("BtnTheme")
+
+# ===== THEME PALETTES =====
+$regKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize"
+$isLightReg = (Get-ItemProperty -Path $regKey -Name AppsUseLightTheme -ErrorAction SilentlyContinue).AppsUseLightTheme -eq 1
+$script:isDark = -not $isLightReg
+
+$darkPalette = @{
+    AppBg          = "#B31E1E1E"
+    AppText        = "#FFFFFF"
+    ControlBg      = "#2D2D2D"
+    BorderClr      = "#3D3D3D"
+    HoverBg        = "#353535"
+    PressedBg      = "#282828"
+    BottomBarBg    = "#602D2D2D"
+    TabSelBg       = "#1AFFFFFF"
+    TabHoverBg     = "#0DFFFFFF"
+    ChkBg          = "#2D2D2D"
+    ChkBorder      = "#3D3D3D"
+    ChkHoverBorder = "#75D2FF"
+}
+
+$lightPalette = @{
+    AppBg          = "#C0F3F3F3"
+    AppText        = "#1B1B1B"
+    ControlBg      = "#FFFFFF"
+    BorderClr      = "#D1D1D1"
+    HoverBg        = "#E5E5E5"
+    PressedBg      = "#D0D0D0"
+    BottomBarBg    = "#90FFFFFF"
+    TabSelBg       = "#15000000"
+    TabHoverBg     = "#08000000"
+    ChkBg          = "#FFFFFF"
+    ChkBorder      = "#C8C8C8"
+    ChkHoverBorder = "#0067C0"
+}
+
+$brushConverter = [System.Windows.Media.BrushConverter]::new()
+function Set-Theme($palette) {
+    foreach ($key in $palette.Keys) {
+        $win.Resources[$key] = $brushConverter.ConvertFromString($palette[$key])
+    }
+}
+
+if (-not $script:isDark) { Set-Theme $lightPalette }
+
+$btnTheme.Add_Click({
+    $script:isDark = -not $script:isDark
+    if ($script:isDark) { Set-Theme $darkPalette } else { Set-Theme $lightPalette }
+    
+    $helper = New-Object System.Windows.Interop.WindowInteropHelper($win)
+    $val = if ($script:isDark) { 1 } else { 0 }
+    [Dwm]::DwmSetWindowAttribute($helper.Handle, 20, [ref]$val, 4) | Out-Null
+})
 
 $checkBoxes = @()
 for ($c = 0; $c -lt $cats.Count; $c++) {
@@ -256,6 +335,7 @@ for ($c = 0; $c -lt $cats.Count; $c++) {
     $tabItem.Header = $cats[$c]
     $scroll = New-Object System.Windows.Controls.ScrollViewer
     $scroll.VerticalScrollBarVisibility = "Auto"
+    $scroll.FocusVisualStyle = $null
     $wrap = New-Object System.Windows.Controls.WrapPanel
     $wrap.Margin = "5"
     
@@ -336,8 +416,8 @@ $win.Add_SourceInitialized({
     $margins.cyBottomHeight = -1
     [Dwm]::DwmExtendFrameIntoClientArea($hwnd, [ref]$margins) | Out-Null
     
-    $trueVal = 1
-    [Dwm]::DwmSetWindowAttribute($hwnd, 20, [ref]$trueVal, 4) | Out-Null
+    $val = if ($script:isDark) { 1 } else { 0 }
+    [Dwm]::DwmSetWindowAttribute($hwnd, 20, [ref]$val, 4) | Out-Null
     
     $backdrop = 2
     [Dwm]::DwmSetWindowAttribute($hwnd, 38, [ref]$backdrop, 4) | Out-Null
