@@ -180,24 +180,20 @@ $xaml = @"
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="CheckBox">
-                        <StackPanel Orientation="Horizontal">
-                            <Border x:Name="checkBoxBorder" Width="20" Height="20" 
-                                    BorderBrush="#3D3D3D" BorderThickness="1.5" 
-                                    Background="#2D2D2D" CornerRadius="4" 
-                                    VerticalAlignment="Center">
-                                <Path x:Name="checkMark" Fill="Black" Visibility="Collapsed" 
-                                      Data="M 4,10 L 8,14 L 16,5 L 14,3 L 8,10 L 6,8 Z" Stretch="Fill" Margin="3"/>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <Border x:Name="MainBorder" Width="20" Height="20" Background="#2D2D2D" BorderBrush="#3D3D3D" BorderThickness="1" CornerRadius="4">
+                                <Path x:Name="CheckMark" Data="M 4,10 L 8,14 L 16,5" Stroke="Black" StrokeThickness="2.5" StrokeEndLineCap="Round" StrokeStartLineCap="Round" StrokeLineJoin="Round" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed"/>
                             </Border>
-                            <ContentPresenter Margin="10,0,0,0" VerticalAlignment="Center"/>
+                            <ContentPresenter Margin="8,0,0,0" VerticalAlignment="Center"/>
                         </StackPanel>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="checkMark" Property="Visibility" Value="Visible"/>
-                                <Setter TargetName="checkBoxBorder" Property="Background" Value="#55C5FF"/>
-                                <Setter TargetName="checkBoxBorder" Property="BorderBrush" Value="#55C5FF"/>
+                                <Setter TargetName="MainBorder" Property="Background" Value="#4CC2FF"/>
+                                <Setter TargetName="MainBorder" Property="BorderBrush" Value="#4CC2FF"/>
+                                <Setter TargetName="CheckMark" Property="Visibility" Value="Visible"/>
                             </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="checkBoxBorder" Property="BorderBrush" Value="#75D2FF"/>
+                                <Setter TargetName="MainBorder" Property="BorderBrush" Value="#75D2FF"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
