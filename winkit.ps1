@@ -53,7 +53,7 @@ $apps = @(
     @{Name="Everything Search";  Id="voidtools.Everything";       Cat=4; Sel=$false},
     @{Name="Rufus";              Id="Rufus.Rufus";                Cat=4; Sel=$false},
     @{Name="ShareX";             Id="ShareX.ShareX";              Cat=4; Sel=$false},
-    @{Name="Revo Uninstaller";   Id="VSRevoGroup.RevoUninstallerFree"; Cat=4; Sel=$false},
+    @{Name="Revo Uninstaller";   Id="RevoUninstaller.RevoUninstaller"; Cat=4; Sel=$false},
     @{Name="WizTree";            Id="AntibodySoftware.WizTree";   Cat=4; Sel=$false},
     @{Name="DirectX Web Setup";  Id="Microsoft.DirectX";          Cat=5; Sel=$false},
     @{Name="Visual C++ Redist";  Id="Microsoft.VCRedist.2015+.x64"; Cat=5; Sel=$false},
@@ -266,6 +266,7 @@ $xaml = @"
                     <StackPanel Orientation="Horizontal" Grid.Column="2">
                         <Button Name="BtnSave" Content="Save Preset" Width="100" Height="35" Margin="0,0,10,0"/>
                         <Button Name="BtnLoad" Content="Load Preset" Width="100" Height="35" Margin="0,0,10,0"/>
+                        <CheckBox x:Name="ChkSkipDeps" Content="Skip Dependencies" VerticalAlignment="Center" Margin="15,0,0,0" Foreground="{DynamicResource AppText}" ToolTip="Don't install bundled dependencies (if supported by winget)"/>
                         <Button Name="BtnInstall" Content="Install" Width="120" Height="35" Style="{StaticResource PrimaryButton}" FontWeight="Bold"/>
                     </StackPanel>
                 </Grid>
@@ -309,6 +310,7 @@ $btnClearAll = $win.FindName("BtnClearAll")
 $btnSave = $win.FindName("BtnSave")
 $btnLoad = $win.FindName("BtnLoad")
 $btnInstall = $win.FindName("BtnInstall")
+$chkSkipDeps = $win.FindName("ChkSkipDeps")
 $btnTheme = $win.FindName("BtnTheme")
 $btnDebug = $win.FindName("BtnDebug")
 $ProgressOverlay = $win.FindName("ProgressOverlay")
@@ -496,7 +498,9 @@ $btnInstall.Add_Click({
 
         $proc = New-Object System.Diagnostics.Process
         $proc.StartInfo.FileName = "winget"
-        $proc.StartInfo.Arguments = "install --id=$($app.Id) --silent --disable-interactivity --accept-package-agreements --accept-source-agreements"
+        $args = "install --id=$($app.Id) --silent --disable-interactivity --accept-package-agreements --accept-source-agreements"
+        if ($chkSkipDeps.IsChecked) { $args += " --skip-dependencies" }
+        $proc.StartInfo.Arguments = $args
         $proc.StartInfo.RedirectStandardOutput = $true
         $proc.StartInfo.RedirectStandardError = $true
         $proc.StartInfo.UseShellExecute = $false
@@ -556,7 +560,9 @@ $btnInstall.Add_Click({
                 $batPath = "$env:TEMP\winget_run_$($app.Id).bat"
                 $vbsPath = "$env:TEMP\winget_run_$($app.Id).vbs"
                 
-                $batCmd = "@echo off`nwinget install --id=$($app.Id) --silent --accept-package-agreements --accept-source-agreements > `"$tmpOut`" 2>&1`necho %ERRORLEVEL% > `"$tmpDone`""
+                $fbArgs = "install --id=$($app.Id) --silent --accept-package-agreements --accept-source-agreements"
+                if ($chkSkipDeps.IsChecked) { $fbArgs += " --skip-dependencies" }
+                $batCmd = "@echo off`nwinget $fbArgs > `"$tmpOut`" 2>&1`necho %ERRORLEVEL% > `"$tmpDone`""
                 Set-Content -Path $batPath -Value $batCmd -Encoding ASCII
                 
                 $vbsCmd = "Set WshShell = CreateObject(`"WScript.Shell`")`nWshShell.Run chr(34) & `"$batPath`" & Chr(34), 0`nSet WshShell = Nothing"
