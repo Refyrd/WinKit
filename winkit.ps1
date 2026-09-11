@@ -228,9 +228,16 @@ $xaml = @"
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <TextBlock Grid.Column="0" Text="App Installer" FontSize="32" FontWeight="SemiBold" Foreground="{DynamicResource AppText}" VerticalAlignment="Center"/>
-                <Button x:Name="BtnTheme" Grid.Column="1" Width="36" Height="36" Padding="0" Background="Transparent" BorderThickness="0" FocusVisualStyle="{x:Null}" Cursor="Hand" VerticalAlignment="Center">
+                
+                <Button x:Name="BtnDebug" Grid.Column="1" Width="36" Height="36" Padding="0" Background="Transparent" BorderThickness="0" FocusVisualStyle="{x:Null}" Cursor="Hand" VerticalAlignment="Center" Margin="0,0,5,0" ToolTip="Toggle Console">
+                    <Path Data="M3,4 H21 V20 H3 V4 Z M5,6 V18 H19 V6 Z M7,8 L10,11 L7,14 L8,15 L12,11 L8,7 Z M12,14 H17 V15 H12 Z" 
+                          Fill="{DynamicResource AppText}" Stretch="Uniform" Margin="6"/>
+                </Button>
+                
+                <Button x:Name="BtnTheme" Grid.Column="2" Width="36" Height="36" Padding="0" Background="Transparent" BorderThickness="0" FocusVisualStyle="{x:Null}" Cursor="Hand" VerticalAlignment="Center" ToolTip="Toggle Theme">
                     <Path Data="M 12,22 C 17.52,22 22,17.52 22,12 C 22,6.48 17.52,2 12,2 C 6.48,2 2,6.48 2,12 C 2,17.52 6.48,22 12,22 Z M 12,20 C 7.58,20 4,16.42 4,12 C 4,7.58 7.58,4 12,4 L 12,20 Z" 
                           Fill="{DynamicResource AppText}" Stretch="Uniform" Margin="6"/>
                 </Button>
@@ -299,6 +306,7 @@ $btnSave = $win.FindName("BtnSave")
 $btnLoad = $win.FindName("BtnLoad")
 $btnInstall = $win.FindName("BtnInstall")
 $btnTheme = $win.FindName("BtnTheme")
+$btnDebug = $win.FindName("BtnDebug")
 $ProgressOverlay = $win.FindName("ProgressOverlay")
 $LblProgressTitle = $win.FindName("LblProgressTitle")
 $LblProgress = $win.FindName("LblProgress")
@@ -359,6 +367,17 @@ $btnTheme.Add_Click({
     $helper = New-Object System.Windows.Interop.WindowInteropHelper($win)
     $val = if ($script:isDark) { 1 } else { 0 }
     [Dwm]::DwmSetWindowAttribute($helper.Handle, 20, [ref]$val, 4) | Out-Null
+})
+
+$script:isConsoleVisible = $false
+$btnDebug.Add_Click({
+    if ($script:isConsoleVisible) {
+        [Console.Window]::ShowWindow([Console.Window]::GetConsoleWindow(), 0) | Out-Null
+        $script:isConsoleVisible = $false
+    } else {
+        [Console.Window]::ShowWindow([Console.Window]::GetConsoleWindow(), 5) | Out-Null
+        $script:isConsoleVisible = $true
+    }
 })
 
 $checkBoxes = @()
