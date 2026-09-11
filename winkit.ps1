@@ -70,22 +70,22 @@ $xaml = @"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="WinKit - App Installer" Width="800" Height="580" 
         WindowStartupLocation="CenterScreen" Background="Transparent" Foreground="#FFFFFF"
-        WindowStyle="None" AllowsTransparency="False" ResizeMode="CanMinimize"
+        WindowStyle="SingleBorderWindow" AllowsTransparency="False"
         FontFamily="Segoe UI Variable Text, Segoe UI" FontSize="14">
     <Window.Resources>
         <Style TargetType="TabItem">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="FontSize" Value="15"/>
-            <Setter Property="Margin" Value="0,0,6,0"/>
+            <Setter Property="Margin" Value="2,0,4,0"/>
             <Setter Property="Padding" Value="12,8,12,10"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="TabItem">
                         <Grid>
-                            <Border Name="Border" Background="{TemplateBinding Background}" CornerRadius="6"/>
+                            <Border Name="Border" Background="{TemplateBinding Background}" CornerRadius="4"/>
                             <ContentPresenter x:Name="ContentSite" VerticalAlignment="Center" HorizontalAlignment="Center" ContentSource="Header" Margin="{TemplateBinding Padding}"/>
-                            <Border x:Name="Indicator" Height="3" CornerRadius="1.5" Background="#55C5FF" VerticalAlignment="Bottom" Margin="8,0,8,2" Visibility="Collapsed"/>
+                            <Border x:Name="Indicator" Height="2.5" CornerRadius="1.5" Background="#55C5FF" VerticalAlignment="Bottom" Margin="8,0,8,2" Visibility="Collapsed"/>
                         </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsSelected" Value="True">
@@ -191,55 +191,41 @@ $xaml = @"
         </Style>
     </Window.Resources>
     
-    <Border BorderThickness="0" Background="Transparent" CornerRadius="0">
-        <Grid>
+    <Grid Background="#801E1E1E">
+        <Grid Margin="25">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
             
-            <Grid Grid.Row="0" Name="TitleBar" Background="Transparent" Height="32">
-                <TextBlock Text="WinKit - App Installer" VerticalAlignment="Center" Margin="15,0,0,0" FontSize="12" Foreground="#AAAAAA" />
-                <Button Name="BtnClose" Content="✕" Width="46" HorizontalAlignment="Right" Background="Transparent" BorderThickness="0" Foreground="White" FontSize="12" Cursor="Arrow"/>
-            </Grid>
+            <TextBlock Text="App Installer" FontSize="32" FontWeight="SemiBold" Foreground="#FFFFFF" Margin="0,0,0,20"/>
             
-            <Grid Grid.Row="1" Background="#801E1E1E" Margin="0">
-                <Grid Margin="25,5,25,25">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
+            <TabControl Name="TabCats" Grid.Row="1" Background="Transparent" BorderThickness="0" Padding="15">
+            </TabControl>
+            
+            <Border Grid.Row="2" Background="#602D2D2D" BorderBrush="#353535" BorderThickness="1" CornerRadius="8" Padding="15" Margin="0,20,0,0">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
                     
-                    <TextBlock Text="App Installer" FontSize="32" FontWeight="SemiBold" Foreground="#FFFFFF" Margin="0,0,0,20"/>
+                    <StackPanel Orientation="Horizontal" Grid.Column="0">
+                        <Button Name="BtnSelectAll" Content="Select All" Width="100" Height="35" Margin="0,0,10,0"/>
+                        <Button Name="BtnClearAll" Content="Clear All" Width="100" Height="35"/>
+                    </StackPanel>
                     
-                    <TabControl Name="TabCats" Grid.Row="1" Background="Transparent" BorderThickness="0" Padding="15">
-                    </TabControl>
-                    
-                    <Border Grid.Row="2" Background="#602D2D2D" BorderBrush="#353535" BorderThickness="1" CornerRadius="8" Padding="15" Margin="0,20,0,0">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            
-                            <StackPanel Orientation="Horizontal" Grid.Column="0">
-                                <Button Name="BtnSelectAll" Content="Select All" Width="100" Height="35" Margin="0,0,10,0"/>
-                                <Button Name="BtnClearAll" Content="Clear All" Width="100" Height="35"/>
-                            </StackPanel>
-                            
-                            <StackPanel Orientation="Horizontal" Grid.Column="2">
-                                <Button Name="BtnSave" Content="Save Preset" Width="100" Height="35" Margin="0,0,10,0"/>
-                                <Button Name="BtnLoad" Content="Load Preset" Width="100" Height="35" Margin="0,0,10,0"/>
-                                <Button Name="BtnInstall" Content="Install" Width="120" Height="35" Style="{StaticResource PrimaryButton}" FontWeight="Bold"/>
-                            </StackPanel>
-                        </Grid>
-                    </Border>
+                    <StackPanel Orientation="Horizontal" Grid.Column="2">
+                        <Button Name="BtnSave" Content="Save Preset" Width="100" Height="35" Margin="0,0,10,0"/>
+                        <Button Name="BtnLoad" Content="Load Preset" Width="100" Height="35" Margin="0,0,10,0"/>
+                        <Button Name="BtnInstall" Content="Install" Width="120" Height="35" Style="{StaticResource PrimaryButton}" FontWeight="Bold"/>
+                    </StackPanel>
                 </Grid>
-            </Grid>
+            </Border>
         </Grid>
-    </Border>
+    </Grid>
 </Window>
 "@
 
@@ -252,18 +238,6 @@ $btnClearAll = $win.FindName("BtnClearAll")
 $btnSave = $win.FindName("BtnSave")
 $btnLoad = $win.FindName("BtnLoad")
 $btnInstall = $win.FindName("BtnInstall")
-$btnClose = $win.FindName("BtnClose")
-$titleBar = $win.FindName("TitleBar")
-
-$titleBar.Add_MouseLeftButtonDown({
-    param($sender, $e)
-    $win.DragMove()
-})
-
-$btnClose.Add_Click({
-    $win.DialogResult = $false
-    $win.Close()
-})
 
 $checkBoxes = @()
 for ($c = 0; $c -lt $cats.Count; $c++) {
