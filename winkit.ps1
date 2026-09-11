@@ -1,13 +1,14 @@
 param([switch]$Elevated)
 
-# Enforce STA if run directly
+# Auto-elevate and enforce STA if run directly
+$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 $isSTA = ([System.Threading.Thread]::CurrentThread.GetApartmentState() -eq 'STA')
 
-if (-not $isSTA) {
+if (-not $isAdmin -or -not $isSTA) {
     if ($PSCommandPath) {
         $argList = "-Sta -ExecutionPolicy Bypass -NoProfile -File `"$PSCommandPath`""
         try {
-            Start-Process powershell.exe -ArgumentList $argList -Wait
+            Start-Process powershell.exe -ArgumentList $argList -Verb RunAs -Wait
         } catch { }
         exit
     }
@@ -538,10 +539,63 @@ $btnInstall.Add_Click({
             $err = $proc.StandardError.ReadToEnd()
             if ($out) { $TxtLog.AppendText($out); $appLog += $out; try { [Console]::Write($out) } catch {} }
             if ($err) { $TxtLog.AppendText($err); $appLog += $err; try { [Console]::Write($err) } catch {} }
-            $TxtLog.AppendText("`n---> Done: $($app.Name) (Exit Code: $($proc.ExitCode))`n")
+            
+            $finalCode = $proc.ExitCode
+            
+            if ($appLog -match "cannot be run from an administrator context") {
+                $TxtLog.AppendText("`n[!] Administrator block detected. Retrying as normal user in background...`n")
+                $TxtLog.ScrollToEnd()
+                Write-Host "Admin block detected for $($app.Name). Retrying via explorer.exe..." -ForegroundColor Yellow
+
+                $tmpOut = "$env:TEMP\winget_out_$($app.Id).log"
+                $tmpDone = "$env:TEMP\winget_done_$($app.Id).log"
+                if (Test-Path $tmpOut) { Remove-Item $tmpOut -Force }
+                if (Test-Path $tmpDone) { Remove-Item $tmpDone -Force }
+                
+                $batPath = "$env:TEMP\winget_run_$($app.Id).bat"
+                $vbsPath = "$env:TEMP\winget_run_$($app.Id).vbs"
+                
+                $batCmd = "@echo off`nwinget install --id=$($app.Id) --silent --accept-package-agreements --accept-source-agreements > `"$tmpOut`" 2>&1`necho %ERRORLEVEL% > `"$tmpDone`""
+                Set-Content -Path $batPath -Value $batCmd -Encoding ASCII
+                
+                $vbsCmd = "Set WshShell = CreateObject(`"WScript.Shell`")`nWshShell.Run chr(34) & `"$batPath`" & Chr(34), 0`nSet WshShell = Nothing"
+                Set-Content -Path $vbsPath -Value $vbsCmd -Encoding ASCII
+                
+                Start-Process "explorer.exe" -ArgumentList "`"$vbsPath`""
+                
+                $lastSize = 0
+                while (-not (Test-Path $tmpDone)) {
+                    if ($global:cancelInstall) { break }
+                    if (Test-Path $tmpOut) {
+                        try {
+                            $fs = New-Object System.IO.FileStream($tmpOut, [System.IO.FileMode]::OpenOrCreate, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
+                            $sr = New-Object System.IO.StreamReader($fs)
+                            $sr.BaseStream.Seek($lastSize, [System.IO.SeekOrigin]::Begin) | Out-Null
+                            $newText = $sr.ReadToEnd()
+                            $lastSize = $sr.BaseStream.Position
+                            $sr.Close()
+                            
+                            if ($newText) {
+                                $TxtLog.AppendText($newText)
+                                $appLog += $newText
+                                $TxtLog.ScrollToEnd()
+                                try { [Console]::Write($newText) } catch {}
+                            }
+                        } catch {}
+                    }
+                    DoEvents
+                    Start-Sleep -Milliseconds 100
+                }
+                
+                if (Test-Path $tmpDone) {
+                    $finalCode = (Get-Content $tmpDone).Trim() -as [int]
+                }
+            }
+
+            $TxtLog.AppendText("`n---> Done: $($app.Name) (Exit Code: $finalCode)`n")
             $TxtLog.ScrollToEnd()
-            $installResults += @{ App = $app; Code = $proc.ExitCode; Cancelled = $false; Log = $appLog }
-            Write-Host "Finished $($app.Name) with code $($proc.ExitCode)" -ForegroundColor Green
+            $installResults += @{ App = $app; Code = $finalCode; Cancelled = $false; Log = $appLog }
+            Write-Host "Finished $($app.Name) with code $finalCode" -ForegroundColor Green
             DoEvents
         } else {
             $installResults += @{ App = $app; Code = -1; Cancelled = $true; Log = $appLog }
