@@ -182,7 +182,7 @@ $xaml = @"
                     <ControlTemplate TargetType="CheckBox">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <Border x:Name="MainBorder" Width="20" Height="20" Background="#2D2D2D" BorderBrush="#3D3D3D" BorderThickness="1" CornerRadius="4">
-                                <Path x:Name="CheckMark" Data="M 4,10 L 8,14 L 16,5" Stroke="Black" StrokeThickness="2.5" StrokeEndLineCap="Round" StrokeStartLineCap="Round" StrokeLineJoin="Round" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed"/>
+                                <Path x:Name="CheckMark" Width="11" Height="8" Stretch="Uniform" Data="M 0,4 L 4,8 L 11,0" Stroke="#000000" StrokeThickness="1.8" StrokeEndLineCap="Round" StrokeStartLineCap="Round" StrokeLineJoin="Round" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed"/>
                             </Border>
                             <ContentPresenter Margin="8,0,0,0" VerticalAlignment="Center"/>
                         </StackPanel>
