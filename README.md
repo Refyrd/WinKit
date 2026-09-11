@@ -1,6 +1,6 @@
 <div align="center">
 
-# ⚡ WinKit 2.0
+# ⚡ WinKit
 
 ### Modern Windows 11 Fluent App Installer powered by WinGet
 
@@ -41,7 +41,7 @@ powershell -ExecutionPolicy Bypass -File winkit.ps1
 
 ---
 
-## ✨ What's New in WinKit 2.0
+## ✨ What's New in WinKit 2.0+
 
 - 🪟 **Native Windows 11 Mica Backdrop**: Translucent glass background integrating seamlessly with Windows 11 desktop theme.
 - 🌓 **Dynamic Light & Dark Themes**: Auto-detects system theme on launch and includes an instant toggle button.
