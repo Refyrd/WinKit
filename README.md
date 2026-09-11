@@ -1,8 +1,8 @@
 <div align="center">
 
-# ⚡ WinKit
+# ⚡ WinKit 2.0
 
-### One-click Windows app installer powered by WinGet
+### Modern Windows 11 Fluent App Installer powered by WinGet
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Windows](https://img.shields.io/badge/Platform-Windows%2010%2F11-0078D6?logo=windows)](https://www.microsoft.com/windows)
@@ -12,7 +12,15 @@
 
 <br>
 
-**Skip the boring setup.** WinKit lets you pick all the apps you need from a single screen and installs them in one go — no clicking through wizards, no hunting for downloads.
+![WinKit Demo](demo.gif)
+
+<br>
+
+**Skip the boring setup.** WinKit 2.0 is a sleek, modern Windows 11 Fluent GUI app installer. Pick all the apps you need across categories and install them in one go — no clicking through wizards, no hunting for downloads.
+
+</div>
+
+---
 
 ## 🚀 Quick Start
 
@@ -21,66 +29,72 @@
 irm https://raw.githubusercontent.com/Refyrd/WinKit/main/install.ps1 | iex
 ```
 
-*This will download and launch the WinKit GUI directly.*
+*This will download and launch the WinKit WPF GUI directly.*
 
 ### Or clone the repo
 
 ```bash
 git clone https://github.com/Refyrd/WinKit.git
 cd WinKit
-winkit.bat
+powershell -ExecutionPolicy Bypass -File winkit.ps1
 ```
+
+---
+
+## ✨ What's New in WinKit 2.0
+
+- 🪟 **Native Windows 11 Mica Backdrop**: Translucent glass background integrating seamlessly with Windows 11 desktop theme.
+- 🌓 **Dynamic Light & Dark Themes**: Auto-detects system theme on launch and includes an instant toggle button.
+- 🎨 **Modern WPF Fluent UI**: Rounded tab categories, vector checkmarks, custom buttons, and smooth hover states.
+- 💾 **Preset Management**: Easily save and load your favorite app presets (`Documents\winkit-preset.txt`).
+- ⚡ **One-Click Batch Install**: Select apps across multiple categories and install them all with WinGet in one click.
+
+---
 
 ## 🎯 Features
 
 | Feature | Description |
 |---------|-------------|
-| 🖥 **Interactive UI** | Navigate with arrow keys, select with spacebar |
-| 📦 **Select all** | Press `A` to grab everything |
-| 🔄 **Toggle** | Select multiple apps across different categories |
-| 📊 **Progress** | Live counter `[2/5]` during installation |
-| 📋 **Report** | Summary with ✓ success / ✗ failure for each app |
-| 🎨 **Categories** | Apps organized into 7 categories |
-| 🛡 **Auto-elevate** | Requests admin rights automatically |
-| ⚡ **One-liner** | Install via `irm ... \| iex` — no git needed |
+| 🖥 **Modern WPF GUI** | Clean Fluent Design interface built natively with WPF |
+| 🪟 **Mica Blur** | Native DWM Mica background effect for Windows 11 |
+| 🌓 **Light & Dark Mode** | Automatic OS theme detection + live switch button |
+| 🗂 **Categorized Tabs** | Convenient tabbed layout for Browsers, Development, Media, etc. |
+| 💾 **Preset Support** | Save and load selection presets with one click |
+| 📦 **Batch Controls** | Quick `Select All` and `Clear All` buttons |
+| 📊 **Progress Output** | Real-time console installation tracking via WinGet |
+| 🛡 **Auto-Elevate** | Requests administrator privileges automatically |
 
-## 📦 Available Apps (37)
+---
+
+## 📦 Available Apps (20+)
 
 | Category | Apps |
 |----------|------|
-| 🌐 **Browsers** | Google Chrome, Mozilla Firefox, Brave, Vivaldi |
-| 💻 **Development** | VS Code, Git, Python 3, Node.js LTS, Notepad++, Docker Desktop |
-| 🎮 **Gaming / Social** | Steam, Discord, Telegram |
-| 🎬 **Media** | VLC, Spotify, OBS Studio, K-Lite Codec Pack, Audacity, GIMP |
-| 🛠 **Utilities** | 7-Zip, WinRAR, qBittorrent, MSI Afterburner, PowerToys, Everything, Rufus, ShareX, Revo Uninstaller, WizTree |
-| ⚙️ **System** | DirectX Web Setup, Visual C++ Redist, CPU-Z, GPU-Z, HWMonitor, CrystalDiskInfo |
-| 📝 **Productivity**| Obsidian, Notion |
+| 🌐 **Browsers** | Google Chrome, Mozilla Firefox, Brave Browser, Vivaldi |
+| 💻 **Development** | VS Code, Notepad++, Sublime Text, Git |
+| 🎬 **Media** | VLC Media Player, OBS Studio, Spotify |
+| 💬 **Communication** | Discord, Telegram, Skype |
+| 🛠 **Utilities** | 7-Zip, WinRAR, Everything, Rufus |
+| 🎮 **Games** | Steam, Epic Games |
 
-> 💡 **Want to add your own apps?** Edit `winkit.bat` — add `Name`, `Id`, and `Cat` into the `$apps` array.
+> 💡 **Want to add your own apps?** Edit `winkit.ps1` — add `Name`, `Id`, and `Cat` into the `$apps` array.
 
-## ⌨️ Controls
-
-| Key | Action |
-|-----|--------|
-| `↑` / `↓` | Navigate apps |
-| `←` / `→` | Switch categories |
-| `1`-`9` | Toggle specific app on current page |
-| `Space` | Select / Deselect app |
-| `A` / `C` | Select all (current page) / Clear all selection |
-| `S` / `L` | Save / Load selection to `Documents\winkit-preset.txt` |
-| `Enter` | Start installation |
-| `Esc` | Exit |
+---
 
 ## 📋 Requirements
 
 - **Windows 10** (version 1709+) or **Windows 11**
 - **WinGet** — pre-installed on Windows 11; for Windows 10, get it from the [Microsoft Store](https://aka.ms/getwinget)
 
+---
+
 ## 🤝 Contributing
 
 1. Fork this repo
-2. Add new apps to `winkit.bat`
+2. Add new apps to `winkit.ps1`
 3. Submit a pull request
+
+---
 
 ## 📄 License
 
