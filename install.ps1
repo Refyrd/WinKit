@@ -17,7 +17,7 @@ try {
     Write-Host "  This window will close when WinKit exits." -ForegroundColor DarkGray
     Write-Host ""
     $argList = "-Sta -ExecutionPolicy Bypass -NoProfile -File `"$batPath`""
-    Start-Process powershell.exe -ArgumentList $argList -Verb RunAs -Wait
+    Start-Process powershell.exe -ArgumentList $argList -Wait
     Write-Host "  WinKit finished." -ForegroundColor Green
 } catch {
     Write-Host "  Download failed: $_" -ForegroundColor Red
