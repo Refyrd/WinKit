@@ -36,7 +36,7 @@ $apps = @(
     @{Name="Steam";              Id="Valve.Steam";                Cat=2; Sel=$false},
     @{Name="Epic Games";         Id="EpicGames.EpicGamesLauncher"; Cat=2; Sel=$false},
     @{Name="Discord";            Id="Discord.Discord";            Cat=2; Sel=$false},
-    @{Name="TeamSpeak 3";        Id="TeamSpeakSystems.TeamSpeakClient"; Cat=2; Sel=$false},
+    @{Name="TeamSpeak 3";        Id="TeamSpeakSystems.TeamSpeakClient"; Cat=2; Sel=$false; Dep="Overwolf"},
     @{Name="TeamSpeak 6 (Beta)"; Id="TeamSpeakSystems.TeamSpeakClient.Beta.6"; Cat=2; Sel=$false},
     @{Name="Telegram";           Id="Telegram.TelegramDesktop";   Cat=2; Sel=$false},
     @{Name="Roblox";             Id="Roblox.Roblox";              Cat=2; Sel=$false},
@@ -49,7 +49,7 @@ $apps = @(
     @{Name="7-Zip";              Id="7zip.7zip";                  Cat=4; Sel=$false},
     @{Name="WinRAR";             Id="RARLab.WinRAR";              Cat=4; Sel=$false},
     @{Name="qBittorrent";        Id="qBittorrent.qBittorrent";    Cat=4; Sel=$false},
-    @{Name="MSI Afterburner";    Id="Guru3D.Afterburner";         Cat=4; Sel=$false},
+    @{Name="MSI Afterburner";    Id="Guru3D.Afterburner";         Cat=4; Sel=$false; Dep="RivaTuner"},
     @{Name="PowerToys";          Id="Microsoft.PowerToys";        Cat=4; Sel=$false},
     @{Name="Everything Search";  Id="voidtools.Everything";       Cat=4; Sel=$false},
     @{Name="Rufus";              Id="Rufus.Rufus";                Cat=4; Sel=$false},
@@ -72,7 +72,7 @@ Add-Type -AssemblyName PresentationFramework
 $xaml = @"
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="WinKit - App Installer" Width="800" Height="580" 
+        Title="WinKit - App Installer" Width="850" Height="580" 
         WindowStartupLocation="CenterScreen" Background="Transparent" Foreground="{DynamicResource AppText}"
         WindowStyle="SingleBorderWindow" AllowsTransparency="False"
         FontFamily="Segoe UI Variable Text, Segoe UI" FontSize="14">
@@ -151,7 +151,7 @@ $xaml = @"
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="4" Padding="{TemplateBinding Padding}">
+                        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6" Padding="{TemplateBinding Padding}">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
@@ -174,7 +174,7 @@ $xaml = @"
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="6" Padding="{TemplateBinding Padding}">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
@@ -264,10 +264,10 @@ $xaml = @"
                         <Button Name="BtnClearAll" Content="Clear All" Width="100" Height="35"/>
                     </StackPanel>
                     
-                    <StackPanel Orientation="Horizontal" Grid.Column="2">
+                    <StackPanel Orientation="Horizontal" Grid.Column="2" HorizontalAlignment="Right">
                         <Button Name="BtnSave" Content="Save Preset" Width="100" Height="35" Margin="0,0,10,0"/>
-                        <Button Name="BtnLoad" Content="Load Preset" Width="100" Height="35" Margin="0,0,10,0"/>
-                        <CheckBox x:Name="ChkSkipDeps" Content="Skip Dependencies" VerticalAlignment="Center" Margin="15,0,0,0" Foreground="{DynamicResource AppText}" ToolTip="Don't install bundled dependencies (if supported by winget)"/>
+                        <Button Name="BtnLoad" Content="Load Preset" Width="100" Height="35" Margin="0,0,15,0"/>
+                        <CheckBox x:Name="ChkSkipDeps" Content="Skip Dependencies" VerticalAlignment="Center" Margin="0,0,15,0" Foreground="{DynamicResource AppText}" ToolTip="Don't install bundled dependencies (if supported by winget)"/>
                         <Button Name="BtnInstall" Content="Install" Width="120" Height="35" Style="{StaticResource PrimaryButton}" FontWeight="Bold"/>
                     </StackPanel>
                 </Grid>
@@ -399,13 +399,36 @@ for ($c = 0; $c -lt $cats.Count; $c++) {
     
     $catApps = $apps | Where-Object { $_.Cat -eq $c }
     foreach ($app in $catApps) {
+        $panel = New-Object System.Windows.Controls.StackPanel
+        $panel.Orientation = "Vertical"
+        $panel.Width = 220
+        $panel.Margin = "0,0,0,5"
+        
         $chk = New-Object System.Windows.Controls.CheckBox
         $chk.Content = $app.Name
         $chk.IsChecked = $app.Sel
-        $chk.Tag = $app.Name
-        $chk.Width = 220
-        $wrap.Children.Add($chk) | Out-Null
+        $chk.Uid = $app.Name
+        $panel.Children.Add($chk) | Out-Null
         $checkBoxes += $chk
+        
+        if ($app.Dep) {
+            $chkDep = New-Object System.Windows.Controls.CheckBox
+            $chkDep.Content = "+ $($app.Dep)"
+            $chkDep.IsChecked = $true
+            $chkDep.IsEnabled = $false
+            $chkDep.Visibility = "Collapsed"
+            $chkDep.Margin = "25,5,0,0"
+            $chkDep.Foreground = $brushConverter.ConvertFromString("#888888")
+            $chkDep.ToolTip = "Bundled dependency (controlled by 'Skip Dependencies' checkbox below)"
+            
+            $chk.Tag = $chkDep
+            $chk.Add_Checked({ $this.Tag.Visibility = "Visible" })
+            $chk.Add_Unchecked({ $this.Tag.Visibility = "Collapsed" })
+            
+            $panel.Children.Add($chkDep) | Out-Null
+        }
+        
+        $wrap.Children.Add($panel) | Out-Null
     }
     
     $scroll.Content = $wrap
@@ -419,7 +442,7 @@ $btnClearAll.Add_Click({ foreach ($chk in $checkBoxes) { $chk.IsChecked = $false
 $btnSave.Add_Click({
     $sel = @()
     foreach ($chk in $checkBoxes) {
-        if ($chk.IsChecked -eq $true) { $sel += $chk.Tag }
+        if ($chk.IsChecked -eq $true) { $sel += $chk.Uid }
     }
     $sel -join "`n" | Out-File -FilePath "$env:USERPROFILE\Documents\winkit-preset.txt" -Encoding utf8
     [System.Windows.MessageBox]::Show("Preset saved to Documents\winkit-preset.txt!", "Success", 0, 64)
@@ -429,7 +452,7 @@ $btnLoad.Add_Click({
     if (Test-Path $path) {
         $lines = Get-Content $path
         foreach ($chk in $checkBoxes) {
-            $chk.IsChecked = $lines -contains $chk.Tag
+            $chk.IsChecked = $lines -contains $chk.Uid
         }
     }
 })
@@ -446,7 +469,7 @@ $btnInstall.Add_Click({
     $toInstall = @()
     foreach ($chk in $checkBoxes) {
         if ($chk.IsChecked -eq $true) {
-            $name = $chk.Tag
+            $name = $chk.Uid
             foreach ($app in $apps) {
                 if ($app.Name -eq $name) {
                     $toInstall += $app
