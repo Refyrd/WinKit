@@ -33,6 +33,7 @@ $apps = @(
     @{Name="Node.js LTS";        Id="OpenJS.NodeJS.LTS";          Cat=1; Sel=$false},
     @{Name="Notepad++";          Id="Notepad++.Notepad++";        Cat=1; Sel=$false},
     @{Name="Docker Desktop";     Id="Docker.DockerDesktop";       Cat=1; Sel=$false},
+    @{Name="Figma";              Id="Figma.Figma";                Cat=1; Sel=$false},
     @{Name="Steam";              Id="Valve.Steam";                Cat=2; Sel=$false},
     @{Name="Epic Games";         Id="EpicGames.EpicGamesLauncher"; Cat=2; Sel=$false},
     @{Name="Discord";            Id="Discord.Discord";            Cat=2; Sel=$false},
@@ -267,7 +268,6 @@ $xaml = @"
                     <StackPanel Orientation="Horizontal" Grid.Column="2" HorizontalAlignment="Right">
                         <Button Name="BtnSave" Content="Save Preset" Width="100" Height="35" Margin="0,0,10,0"/>
                         <Button Name="BtnLoad" Content="Load Preset" Width="100" Height="35" Margin="0,0,15,0"/>
-                        <CheckBox x:Name="ChkSkipDeps" Content="Skip Dependencies" VerticalAlignment="Center" Margin="0,0,15,0" Foreground="{DynamicResource AppText}" ToolTip="Don't install bundled dependencies (if supported by winget)"/>
                         <Button Name="BtnInstall" Content="Install" Width="120" Height="35" Style="{StaticResource PrimaryButton}" FontWeight="Bold"/>
                     </StackPanel>
                 </Grid>
@@ -311,7 +311,6 @@ $btnClearAll = $win.FindName("BtnClearAll")
 $btnSave = $win.FindName("BtnSave")
 $btnLoad = $win.FindName("BtnLoad")
 $btnInstall = $win.FindName("BtnInstall")
-$chkSkipDeps = $win.FindName("ChkSkipDeps")
 $btnTheme = $win.FindName("BtnTheme")
 $btnDebug = $win.FindName("BtnDebug")
 $ProgressOverlay = $win.FindName("ProgressOverlay")
@@ -388,6 +387,7 @@ $btnDebug.Add_Click({
 })
 
 $checkBoxes = @()
+$global:depCheckBoxes = @{}
 for ($c = 0; $c -lt $cats.Count; $c++) {
     $tabItem = New-Object System.Windows.Controls.TabItem
     $tabItem.Header = $cats[$c]
@@ -415,11 +415,11 @@ for ($c = 0; $c -lt $cats.Count; $c++) {
             $chkDep = New-Object System.Windows.Controls.CheckBox
             $chkDep.Content = "+ $($app.Dep)"
             $chkDep.IsChecked = $true
-            $chkDep.IsEnabled = $false
             $chkDep.Visibility = "Collapsed"
-            $chkDep.Margin = "25,5,0,0"
-            $chkDep.Foreground = $brushConverter.ConvertFromString("#888888")
-            $chkDep.ToolTip = "Bundled dependency (controlled by 'Skip Dependencies' checkbox below)"
+            $chkDep.Margin = "25,2,0,0"
+            $chkDep.ToolTip = "Uncheck to skip installing $($app.Dep)"
+            
+            $global:depCheckBoxes[$app.Name] = $chkDep
             
             $chk.Tag = $chkDep
             $chk.Add_Checked({ $this.Tag.Visibility = "Visible" })
@@ -522,9 +522,14 @@ $btnInstall.Add_Click({
 
         $proc = New-Object System.Diagnostics.Process
         $proc.StartInfo.FileName = "winget"
-        $args = "install --id=$($app.Id) --silent --disable-interactivity --accept-package-agreements --accept-source-agreements"
-        if ($chkSkipDeps.IsChecked) { $args += " --skip-dependencies" }
-        $proc.StartInfo.Arguments = $args
+        $wArgs = "install --id=$($app.Id) --silent --disable-interactivity --accept-package-agreements --accept-source-agreements"
+        
+        if ($app.Dep -and $global:depCheckBoxes.ContainsKey($app.Name)) {
+            $depChk = $global:depCheckBoxes[$app.Name]
+            if (-not $depChk.IsChecked) { $wArgs += " --skip-dependencies" }
+        }
+        
+        $proc.StartInfo.Arguments = $wArgs
         $proc.StartInfo.RedirectStandardOutput = $true
         $proc.StartInfo.RedirectStandardError = $true
         $proc.StartInfo.UseShellExecute = $false
@@ -585,7 +590,7 @@ $btnInstall.Add_Click({
                 $vbsPath = "$env:TEMP\winget_run_$($app.Id).vbs"
                 
                 $fbArgs = "install --id=$($app.Id) --silent --accept-package-agreements --accept-source-agreements"
-                if ($chkSkipDeps.IsChecked) { $fbArgs += " --skip-dependencies" }
+                if ($wArgs -match "--skip-dependencies") { $fbArgs += " --skip-dependencies" }
                 $batCmd = "@echo off`nwinget $fbArgs > `"$tmpOut`" 2>&1`necho %ERRORLEVEL% > `"$tmpDone`""
                 Set-Content -Path $batPath -Value $batCmd -Encoding ASCII
                 
