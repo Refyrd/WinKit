@@ -77,30 +77,29 @@ $xaml = @"
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="FontSize" Value="15"/>
-            <Setter Property="Margin" Value="2,0,4,0"/>
-            <Setter Property="Padding" Value="12,8,12,10"/>
+            <Setter Property="Margin" Value="0,0,4,0"/>
+            <Setter Property="Padding" Value="14,7,14,8"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="TabItem">
-                        <Grid>
-                            <Border Name="Border" Background="{TemplateBinding Background}" CornerRadius="4"/>
-                            <ContentPresenter x:Name="ContentSite" VerticalAlignment="Center" HorizontalAlignment="Center" ContentSource="Header" Margin="{TemplateBinding Padding}"/>
-                            <Border x:Name="Indicator" Height="2.5" CornerRadius="1.5" Background="#55C5FF" VerticalAlignment="Bottom" Margin="8,0,8,2" Visibility="Collapsed"/>
-                        </Grid>
+                        <Border x:Name="TabBorder" CornerRadius="6" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
+                            <Grid>
+                                <ContentPresenter ContentSource="Header" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                <Border x:Name="SelectionIndicator" Height="2.5" CornerRadius="1.5" Background="#55C5FF" 
+                                        VerticalAlignment="Bottom" Margin="8,0,8,-6" Visibility="Collapsed"/>
+                            </Grid>
+                        </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="Border" Property="Background" Value="#1AFFFFFF"/>
-                                <Setter TargetName="Indicator" Property="Visibility" Value="Visible"/>
-                            </Trigger>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Border" Property="Background" Value="#0DFFFFFF"/>
+                                <Setter TargetName="TabBorder" Property="Background" Value="#1AFFFFFF"/>
+                                <Setter TargetName="SelectionIndicator" Property="Visibility" Value="Visible"/>
                             </Trigger>
                             <MultiTrigger>
                                 <MultiTrigger.Conditions>
-                                    <Condition Property="IsSelected" Value="True"/>
                                     <Condition Property="IsMouseOver" Value="True"/>
+                                    <Condition Property="IsSelected" Value="False"/>
                                 </MultiTrigger.Conditions>
-                                <Setter TargetName="Border" Property="Background" Value="#1AFFFFFF"/>
+                                <Setter TargetName="TabBorder" Property="Background" Value="#0DFFFFFF"/>
                             </MultiTrigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
