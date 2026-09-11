@@ -90,17 +90,19 @@ $xaml = @"
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="FontSize" Value="15"/>
-            <Setter Property="Margin" Value="0,0,6,0"/>
-            <Setter Property="Padding" Value="14,7,14,8"/>
+            <Setter Property="Margin" Value="0"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="TabItem">
-                        <Border x:Name="TabBorder" CornerRadius="6" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" ClipToBounds="False">
-                            <Grid>
-                                <ContentPresenter ContentSource="Header" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                <Border x:Name="SelectionIndicator" Height="2.5" CornerRadius="1.5" Background="#55C5FF" 
-                                        VerticalAlignment="Bottom" Margin="8,0,8,-6" Visibility="Collapsed"/>
-                            </Grid>
+                        <Border Background="Transparent" Padding="0,0,8,0">
+                            <Border x:Name="TabBorder" CornerRadius="6" Background="Transparent" Padding="14,7,14,8">
+                                <Grid>
+                                    <ContentPresenter ContentSource="Header" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    <Border x:Name="SelectionIndicator" Height="2.5" CornerRadius="1.5" Background="#55C5FF" 
+                                            VerticalAlignment="Bottom" Margin="4,0,4,-6" Visibility="Collapsed"/>
+                                </Grid>
+                            </Border>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsSelected" Value="True">
@@ -174,6 +176,7 @@ $xaml = @"
             <Setter Property="FontSize" Value="14"/>
             <Setter Property="Margin" Value="10"/>
             <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="CheckBox">
