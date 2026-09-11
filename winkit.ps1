@@ -34,8 +34,11 @@ $apps = @(
     @{Name="Notepad++";          Id="Notepad++.Notepad++";        Cat=1; Sel=$false},
     @{Name="Docker Desktop";     Id="Docker.DockerDesktop";       Cat=1; Sel=$false},
     @{Name="Steam";              Id="Valve.Steam";                Cat=2; Sel=$false},
+    @{Name="Epic Games";         Id="EpicGames.EpicGamesLauncher"; Cat=2; Sel=$false},
     @{Name="Discord";            Id="Discord.Discord";            Cat=2; Sel=$false},
+    @{Name="TeamSpeak";          Id="TeamSpeakSystems.TeamSpeakClient"; Cat=2; Sel=$false},
     @{Name="Telegram";           Id="Telegram.TelegramDesktop";   Cat=2; Sel=$false},
+    @{Name="Roblox";             Id="Roblox.Roblox";              Cat=2; Sel=$false},
     @{Name="VLC Media Player";   Id="VideoLAN.VLC";               Cat=3; Sel=$false},
     @{Name="Spotify";            Id="Spotify.Spotify";            Cat=3; Sel=$false},
     @{Name="OBS Studio";         Id="OBSProject.OBSStudio";       Cat=3; Sel=$false},
@@ -518,9 +521,7 @@ $btnInstall.Add_Click({
                 try { [Console]::Write($char) } catch {}
                 
                 if ($char -eq "`n" -or $char -eq "`r") {
-                    if ($lineBuffer -match "(\d+(?:\.\d+)?\s*[KMG]B\s*/\s*\d+(?:\.\d+)?\s*[KMG]B)") {
-                        $LblProgress.Text = "Installing ($count / $($toInstall.Count)): $($app.Name) - $($matches[1])"
-                    } elseif ($lineBuffer -match "(\d+\s*%)") {
+                    if ($lineBuffer -match "(\d+(?:\.\d+)?\s*[KMG]B\s*/\s*\d+(?:\.\d+)?\s*[KMG]B|\d+\s*%)") {
                         $LblProgress.Text = "Installing ($count / $($toInstall.Count)): $($app.Name) - $($matches[1])"
                     }
                     $lineBuffer = ""
@@ -625,17 +626,20 @@ $btnInstall.Add_Click({
         
         $isUpToDate = ($code -eq -1978335220 -or $code -eq 2316632076 -or $code -eq -1978335189 -or $code -eq 2316632107 -or ($logStr -match "No newer package versions" -or $logStr -match "No available upgrade found"))
         
-        if ($res.Cancelled) { $color = "#FFC107" }
-        elseif ($code -ne 0 -and -not $isUpToDate) { $color = "#DC3545" }
+        switch ($true) {
+            { $res.Cancelled } { $color = "#FFC107" }
+            { $code -ne 0 -and -not $isUpToDate } { $color = "#DC3545" }
+            default { $color = "#28A745" }
+        }
         
-        $desc = "Successfully installed"
-        if ($res.Cancelled) { $desc = "Skipped - you hit the brakes!" }
-        elseif ($isUpToDate) { $desc = "Already up to date (Nothing to do here)" }
-        elseif ($code -eq 1618) { $desc = "Busy! Another installation is running (Code 1618)" }
-        elseif ($code -eq 1602 -or $code -eq -2147023673 -or $code -eq 2147943623) { $desc = "Halted! Check logs (Cancelled or UAC denied)" }
-        elseif ($code -eq 1603) { $desc = "Fatal crash! Check the logs for clues (Code 1603)" }
-        elseif ($code -ne 0) {
-            $desc = "Oops, something broke! Check logs (Code: $code)"
+        switch ($true) {
+            { $res.Cancelled } { $desc = "Skipped - you hit the brakes!" }
+            { $isUpToDate } { $desc = "Already up to date (Nothing to do here)" }
+            { $code -eq 1618 } { $desc = "Busy! Another installation is running (Code 1618)" }
+            { $code -in 1602, -2147023673, 2147943623 } { $desc = "Halted! Check logs (Cancelled or UAC denied)" }
+            { $code -eq 1603 } { $desc = "Fatal crash! Check the logs for clues (Code 1603)" }
+            { $code -ne 0 } { $desc = "Oops, something broke! Check logs (Code: $code)" }
+            default { $desc = "Successfully installed" }
         }
 
         $bdr = New-Object System.Windows.Controls.Border
