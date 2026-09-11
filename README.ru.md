@@ -12,7 +12,7 @@
 
 <br>
 
-![WinKit Demo](demo.gif)
+![WinKit Demo](winkit-preview.gif)
 
 <br>
 
