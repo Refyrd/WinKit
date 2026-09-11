@@ -450,6 +450,7 @@ $btnInstall.Add_Click({
     }
 
     if ($toInstall.Count -eq 0) { return }
+    Write-Host "Install button clicked. Selected apps: $($toInstall.Count)" -ForegroundColor Yellow
 
     $ProgressOverlay.Visibility = "Visible"
     $TxtLog.Visibility = "Visible"
@@ -500,6 +501,7 @@ $btnInstall.Add_Click({
         $proc.StartInfo.StandardErrorEncoding = [System.Text.Encoding]::UTF8
 
         $proc.Start() | Out-Null
+        Write-Host "Started winget process for $($app.Name)..." -ForegroundColor Cyan
         
         $lineBuffer = ""
 
@@ -512,6 +514,7 @@ $btnInstall.Add_Click({
                 $char = [char]$proc.StandardOutput.Read()
                 $TxtLog.AppendText($char)
                 $appLog += $char
+                try { [Console]::Write($char) } catch {}
                 
                 if ($char -eq "`n" -or $char -eq "`r") {
                     if ($lineBuffer -match "(\d+(?:\.\d+)?\s*[KMG]B\s*/\s*\d+(?:\.\d+)?\s*[KMG]B)") {
@@ -533,11 +536,12 @@ $btnInstall.Add_Click({
         if (-not $global:cancelInstall) {
             $out = $proc.StandardOutput.ReadToEnd()
             $err = $proc.StandardError.ReadToEnd()
-            if ($out) { $TxtLog.AppendText($out); $appLog += $out }
-            if ($err) { $TxtLog.AppendText($err); $appLog += $err }
+            if ($out) { $TxtLog.AppendText($out); $appLog += $out; try { [Console]::Write($out) } catch {} }
+            if ($err) { $TxtLog.AppendText($err); $appLog += $err; try { [Console]::Write($err) } catch {} }
             $TxtLog.AppendText("`n---> Done: $($app.Name) (Exit Code: $($proc.ExitCode))`n")
             $TxtLog.ScrollToEnd()
             $installResults += @{ App = $app; Code = $proc.ExitCode; Cancelled = $false; Log = $appLog }
+            Write-Host "Finished $($app.Name) with code $($proc.ExitCode)" -ForegroundColor Green
             DoEvents
         } else {
             $installResults += @{ App = $app; Code = -1; Cancelled = $true; Log = $appLog }
