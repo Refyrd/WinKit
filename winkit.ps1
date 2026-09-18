@@ -307,30 +307,6 @@ $reader = (New-Object System.Xml.XmlNodeReader([xml]$xaml))
 $win = [Windows.Markup.XamlReader]::Load($reader)
 
 $brushConverter = [System.Windows.Media.BrushConverter]::new()
-
-function Update-AppTheme {
-    # 1. Update Accent Color
-    $hex = "#55C5FF"
-    try {
-        $palette = Get-ItemProperty 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Accent' -Name AccentPalette -ErrorAction SilentlyContinue
-        if ($palette) {
-            $hex = "#{0:X2}{1:X2}{2:X2}" -f $palette.AccentPalette[32], $palette.AccentPalette[33], $palette.AccentPalette[34]
-        } else {
-            $c = (Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\DWM').ColorizationColor
-            $hex = "#{0:X6}" -f ($c -band 0xFFFFFF)
-        }
-    } catch {}
-    
-    $win.Resources["PrimaryClr"] = $brushConverter.ConvertFromString($hex)
-
-    # 2. Update Dark/Light Mode
-    $regKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize"
-    $isLightReg = (Get-ItemProperty -Path $regKey -Name AppsUseLightTheme -ErrorAction SilentlyContinue).AppsUseLightTheme -eq 1
-    
-    if ($isLightReg) { Set-Theme $lightPalette; $script:isDark = $false }
-    else { Set-Theme $darkPalette; $script:isDark = $true }
-}
-
 $tabCats = $win.FindName("TabCats")
 $btnSelectAll = $win.FindName("BtnSelectAll")
 $btnClearAll = $win.FindName("BtnClearAll")
@@ -394,14 +370,16 @@ function Update-AppTheme {
     # 1. Update Accent Color
     $hex = "#55C5FF"
     try {
-        $palette = Get-ItemProperty 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Accent' -Name AccentPalette -ErrorAction SilentlyContinue
-        if ($palette) {
-            $hex = "#{0:X2}{1:X2}{2:X2}" -f $palette.AccentPalette[32], $palette.AccentPalette[33], $palette.AccentPalette[34]
-        } else {
+        [Windows.UI.ViewManagement.UISettings, Windows.UI.ViewManagement, ContentType=WindowsRuntime] | Out-Null
+        $uiSettings = [Windows.UI.ViewManagement.UISettings]::new()
+        $accent = $uiSettings.GetColorValue([Windows.UI.ViewManagement.UIColorType]::Accent)
+        $hex = "#{0:X2}{1:X2}{2:X2}" -f $accent.R, $accent.G, $accent.B
+    } catch {
+        try {
             $c = (Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\DWM').ColorizationColor
             $hex = "#{0:X6}" -f ($c -band 0xFFFFFF)
-        }
-    } catch {}
+        } catch {}
+    }
     
     $win.Dispatcher.Invoke({
         $win.Resources["PrimaryClr"] = $brushConverter.ConvertFromString($hex)
