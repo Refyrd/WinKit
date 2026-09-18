@@ -36,13 +36,13 @@ $apps = @(
     @{Name="Figma";              Id="Figma.Figma";                Cat=1; Sel=$false},
     @{Name="Steam";              Id="Valve.Steam";                Cat=2; Sel=$false},
     @{Name="Epic Games";         Id="EpicGames.EpicGamesLauncher"; Cat=2; Sel=$false},
-    @{Name="Discord";            Id="Discord.Discord";            Cat=2; Sel=$false},
+    @{Name="Discord";            Id="Discord.Discord";            Cat=2; Sel=$false; Scope="User"},
     @{Name="TeamSpeak 3";        Id="TeamSpeakSystems.TeamSpeakClient"; Cat=2; Sel=$false; Dep="Overwolf"},
     @{Name="TeamSpeak 6 (Beta)"; Id="TeamSpeakSystems.TeamSpeakClient.Beta.6"; Cat=2; Sel=$false},
-    @{Name="Telegram";           Id="Telegram.TelegramDesktop";   Cat=2; Sel=$false},
-    @{Name="Roblox";             Id="Roblox.Roblox";              Cat=2; Sel=$false},
+    @{Name="Telegram";           Id="Telegram.TelegramDesktop";   Cat=2; Sel=$false; Scope="User"},
+    @{Name="Roblox";             Id="Roblox.Roblox";              Cat=2; Sel=$false; Scope="User"},
     @{Name="VLC Media Player";   Id="VideoLAN.VLC";               Cat=3; Sel=$false},
-    @{Name="Spotify";            Id="Spotify.Spotify";            Cat=3; Sel=$false},
+    @{Name="Spotify";            Id="Spotify.Spotify";            Cat=3; Sel=$false; Scope="User"},
     @{Name="OBS Studio";         Id="OBSProject.OBSStudio";       Cat=3; Sel=$false},
     @{Name="K-Lite Codec Pack";  Id="CodecGuide.K-LiteCodecPack.Standard"; Cat=3; Sel=$false},
     @{Name="Audacity";           Id="Audacity.Audacity";          Cat=3; Sel=$false},
@@ -63,8 +63,8 @@ $apps = @(
     @{Name="GPU-Z";              Id="TechPowerUp.GPU-Z";          Cat=5; Sel=$false},
     @{Name="HWMonitor";          Id="CPUID.HWMonitor";            Cat=5; Sel=$false},
     @{Name="CrystalDiskInfo";    Id="CrystalDewWorld.CrystalDiskInfo"; Cat=5; Sel=$false},
-    @{Name="Obsidian";           Id="Obsidian.Obsidian";          Cat=6; Sel=$false},
-    @{Name="Notion";             Id="Notion.Notion";              Cat=6; Sel=$false}
+    @{Name="Obsidian";           Id="Obsidian.Obsidian";          Cat=6; Sel=$false; Scope="User"},
+    @{Name="Notion";             Id="Notion.Notion";              Cat=6; Sel=$false; Scope="User"}
 )
 
 $cats = @("Browsers", "Development", "Gaming / Social", "Media", "Utilities", "System", "Productivity")
@@ -537,99 +537,126 @@ $btnInstall.Add_Click({
         $proc.StartInfo.StandardOutputEncoding = [System.Text.Encoding]::UTF8
         $proc.StartInfo.StandardErrorEncoding = [System.Text.Encoding]::UTF8
 
-        $proc.Start() | Out-Null
-        Write-Host "Started winget process for $($app.Name)..." -ForegroundColor Cyan
+        $useFallback = ($app.Scope -eq "User" -and $isAdmin)
+        $finalCode = 0
         
-        $lineBuffer = ""
-
-        while (-not $proc.HasExited) {
-            if ($global:cancelInstall) {
-                try { $proc.Kill() } catch {}
-                break
-            }
-            while ($proc.StandardOutput.Peek() -gt -1) {
-                $char = [char]$proc.StandardOutput.Read()
-                $TxtLog.AppendText($char)
-                $appLog += $char
-                try { [Console]::Write($char) } catch {}
-                
-                if ($char -eq "`n" -or $char -eq "`r") {
-                    if ($lineBuffer -match "(\d+(?:\.\d+)?\s*[KMG]B\s*/\s*\d+(?:\.\d+)?\s*[KMG]B|\d+\s*%)") {
-                        $LblProgress.Text = "Installing ($count / $($toInstall.Count)): $($app.Name) - $($matches[1])"
-                    }
-                    $lineBuffer = ""
-                } else {
-                    $lineBuffer += $char
+        if (-not $useFallback) {
+            $proc.Start() | Out-Null
+            Write-Host "Started winget process for $($app.Name)..." -ForegroundColor Cyan
+            
+            $lineBuffer = ""
+    
+            while (-not $proc.HasExited) {
+                if ($global:cancelInstall) {
+                    try { $proc.Kill() } catch {}
+                    break
                 }
-                
-                $TxtLog.ScrollToEnd()
+                while ($proc.StandardOutput.Peek() -gt -1) {
+                    $char = [char]$proc.StandardOutput.Read()
+                    $TxtLog.AppendText($char)
+                    $appLog += $char
+                    try { [Console]::Write($char) } catch {}
+                    
+                    if ($char -eq "`n" -or $char -eq "`r") {
+                        if ($lineBuffer -match "(\d+(?:\.\d+)?\s*[KMG]B\s*/\s*\d+(?:\.\d+)?\s*[KMG]B|\d+\s*%)") {
+                            $LblProgress.Text = "Installing ($count / $($toInstall.Count)): $($app.Name) - $($matches[1])"
+                        }
+                        $lineBuffer = ""
+                    } else {
+                        $lineBuffer += $char
+                    }
+                    
+                    $TxtLog.ScrollToEnd()
+                }
+                DoEvents
+                Start-Sleep -Milliseconds 20
             }
-            DoEvents
-            Start-Sleep -Milliseconds 20
+    
+            if (-not $global:cancelInstall) {
+                $out = $proc.StandardOutput.ReadToEnd()
+                $err = $proc.StandardError.ReadToEnd()
+                if ($out) { $TxtLog.AppendText($out); $appLog += $out; try { [Console]::Write($out) } catch {} }
+                if ($err) { $TxtLog.AppendText($err); $appLog += $err; try { [Console]::Write($err) } catch {} }
+                
+                $finalCode = $proc.ExitCode
+                
+                if ($appLog -match "cannot be run from an administrator context") {
+                    $useFallback = $true
+                    $TxtLog.AppendText("`n[!] Administrator block detected. Retrying as normal user in background...`n")
+                    $TxtLog.ScrollToEnd()
+                    Write-Host "Admin block detected for $($app.Name). Retrying via explorer.exe..." -ForegroundColor Yellow
+                }
+            }
+        } else {
+            $TxtLog.AppendText("`n[!] App requires User-Scope. Installing via background user context...`n")
+            $TxtLog.ScrollToEnd()
+            Write-Host "App requires User-Scope ($($app.Name)). Routing through explorer.exe..." -ForegroundColor Cyan
         }
 
-        if (-not $global:cancelInstall) {
-            $out = $proc.StandardOutput.ReadToEnd()
-            $err = $proc.StandardError.ReadToEnd()
-            if ($out) { $TxtLog.AppendText($out); $appLog += $out; try { [Console]::Write($out) } catch {} }
-            if ($err) { $TxtLog.AppendText($err); $appLog += $err; try { [Console]::Write($err) } catch {} }
+        if ($useFallback -and -not $global:cancelInstall) {
+            $tmpOut = "$env:TEMP\winget_out_$($app.Id).log"
+            $tmpDone = "$env:TEMP\winget_done_$($app.Id).log"
+            if (Test-Path $tmpOut) { Remove-Item $tmpOut -Force }
+            if (Test-Path $tmpDone) { Remove-Item $tmpDone -Force }
             
-            $finalCode = $proc.ExitCode
+            $batPath = "$env:TEMP\winget_run_$($app.Id).bat"
+            $vbsPath = "$env:TEMP\winget_run_$($app.Id).vbs"
             
-            if ($appLog -match "cannot be run from an administrator context") {
-                $TxtLog.AppendText("`n[!] Administrator block detected. Retrying as normal user in background...`n")
-                $TxtLog.ScrollToEnd()
-                Write-Host "Admin block detected for $($app.Name). Retrying via explorer.exe..." -ForegroundColor Yellow
-
-                $tmpOut = "$env:TEMP\winget_out_$($app.Id).log"
-                $tmpDone = "$env:TEMP\winget_done_$($app.Id).log"
-                if (Test-Path $tmpOut) { Remove-Item $tmpOut -Force }
-                if (Test-Path $tmpDone) { Remove-Item $tmpDone -Force }
-                
-                $batPath = "$env:TEMP\winget_run_$($app.Id).bat"
-                $vbsPath = "$env:TEMP\winget_run_$($app.Id).vbs"
-                
-                $fbArgs = "install --id=$($app.Id) --silent --accept-package-agreements --accept-source-agreements"
-                if ($wArgs -match "--skip-dependencies") { $fbArgs += " --skip-dependencies" }
-                $batCmd = "@echo off`nwinget $fbArgs > `"$tmpOut`" 2>&1`necho %ERRORLEVEL% > `"$tmpDone`""
-                Set-Content -Path $batPath -Value $batCmd -Encoding ASCII
-                
-                $vbsCmd = "Set WshShell = CreateObject(`"WScript.Shell`")`nWshShell.Run chr(34) & `"$batPath`" & Chr(34), 0`nSet WshShell = Nothing"
-                Set-Content -Path $vbsPath -Value $vbsCmd -Encoding ASCII
-                
-                Start-Process "explorer.exe" -ArgumentList "`"$vbsPath`""
-                
-                $lastSize = 0
-                while (-not (Test-Path $tmpDone)) {
-                    if ($global:cancelInstall) { break }
-                    if (Test-Path $tmpOut) {
-                        try {
-                            $fs = New-Object System.IO.FileStream($tmpOut, [System.IO.FileMode]::OpenOrCreate, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
-                            $sr = New-Object System.IO.StreamReader($fs)
-                            $sr.BaseStream.Seek($lastSize, [System.IO.SeekOrigin]::Begin) | Out-Null
-                            $newText = $sr.ReadToEnd()
-                            $lastSize = $sr.BaseStream.Position
-                            $sr.Close()
-                            
-                            if ($newText) {
-                                $TxtLog.AppendText($newText)
-                                $appLog += $newText
-                                $TxtLog.ScrollToEnd()
-                                try { [Console]::Write($newText) } catch {}
-                            }
-                        } catch {}
-                    }
-                    DoEvents
-                    Start-Sleep -Milliseconds 100
+            $fbArgs = "install --id=$($app.Id) --silent --accept-package-agreements --accept-source-agreements"
+            if ($wArgs -match "--skip-dependencies") { $fbArgs += " --skip-dependencies" }
+            $batCmd = "@echo off`nwinget $fbArgs > `"$tmpOut`" 2>&1`necho %ERRORLEVEL% > `"$tmpDone`""
+            Set-Content -Path $batPath -Value $batCmd -Encoding ASCII
+            
+            $vbsCmd = "Set WshShell = CreateObject(`"WScript.Shell`")`nWshShell.Run chr(34) & `"$batPath`" & Chr(34), 0`nSet WshShell = Nothing"
+            Set-Content -Path $vbsPath -Value $vbsCmd -Encoding ASCII
+            
+            Start-Process "explorer.exe" -ArgumentList "`"$vbsPath`""
+            
+            $lastSize = 0
+            while (-not (Test-Path $tmpDone)) {
+                if ($global:cancelInstall) { break }
+                if (Test-Path $tmpOut) {
+                    try {
+                        $fs = New-Object System.IO.FileStream($tmpOut, [System.IO.FileMode]::OpenOrCreate, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
+                        $sr = New-Object System.IO.StreamReader($fs)
+                        $sr.BaseStream.Seek($lastSize, [System.IO.SeekOrigin]::Begin) | Out-Null
+                        $newText = $sr.ReadToEnd()
+                        $lastSize = $sr.BaseStream.Position
+                        $sr.Close()
+                        
+                        if ($newText) {
+                            $TxtLog.AppendText($newText)
+                            $appLog += $newText
+                            $TxtLog.ScrollToEnd()
+                            try { [Console]::Write($newText) } catch {}
+                        }
+                    } catch {}
                 }
-                
-                if (Test-Path $tmpDone) {
-                    $finalCode = (Get-Content $tmpDone).Trim() -as [int]
-                }
+                DoEvents
+                Start-Sleep -Milliseconds 100
             }
+            
+            if (Test-Path $tmpDone) {
+                $finalCode = (Get-Content $tmpDone).Trim() -as [int]
+            }
+        }
+        
+        # Aggressive bundled bloatware cleanup
+        if ($wArgs -match "--skip-dependencies") {
+            if ($app.Name -eq "TeamSpeak 3") {
+                $TxtLog.AppendText("`n[+] Aggressively removing bundled Overwolf...`n")
+                $TxtLog.ScrollToEnd()
+                Start-Process "winget" -ArgumentList "uninstall --id Overwolf.Overwolf --silent --accept-source-agreements" -Wait -NoNewWindow
+            }
+            if ($app.Name -eq "MSI Afterburner") {
+                $TxtLog.AppendText("`n[+] Aggressively removing bundled RivaTuner...`n")
+                $TxtLog.ScrollToEnd()
+                Start-Process "winget" -ArgumentList "uninstall --id Guru3D.RTSS --silent --accept-source-agreements" -Wait -NoNewWindow
+            }
+        }
 
-            $TxtLog.AppendText("`n---> Done: $($app.Name) (Exit Code: $finalCode)`n")
-            $TxtLog.ScrollToEnd()
+        $TxtLog.AppendText("`n---> Done: $($app.Name) (Exit Code: $finalCode)`n")
+        $TxtLog.ScrollToEnd()
             $installResults += @{ App = $app; Code = $finalCode; Cancelled = $false; Log = $appLog }
             Write-Host "Finished $($app.Name) with code $finalCode" -ForegroundColor Green
             DoEvents
