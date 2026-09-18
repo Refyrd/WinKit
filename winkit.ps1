@@ -415,7 +415,6 @@ function Update-AppTheme {
         
         $helper = New-Object System.Windows.Interop.WindowInteropHelper($win)
         $val = if ($script:isDark) { 1 } else { 0 }
-        $bytes = [BitConverter]::GetBytes($val)
         [Dwm]::DwmSetWindowAttribute($helper.Handle, 20, [ref]$val, 4) | Out-Null
         [Dwm]::DwmSetWindowAttribute($helper.Handle, 19, [ref]$val, 4) | Out-Null
     })
