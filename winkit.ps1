@@ -91,6 +91,7 @@ $xaml = @"
         <SolidColorBrush x:Key="ChkBorder"      Color="#3D3D3D"/>
         <SolidColorBrush x:Key="ChkHoverBorder" Color="#75D2FF"/>
         <SolidColorBrush x:Key="PrimaryClr"     Color="#55C5FF"/>
+        <SolidColorBrush x:Key="PrimaryBtnTextClr" Color="White"/>
 
         <Style TargetType="TabControl">
             <Setter Property="Background" Value="Transparent"/>
@@ -171,7 +172,7 @@ $xaml = @"
 
         <Style TargetType="Button" x:Key="PrimaryButton" BasedOn="{StaticResource {x:Type Button}}">
             <Setter Property="Background" Value="{DynamicResource PrimaryClr}"/>
-            <Setter Property="Foreground" Value="Black"/>
+            <Setter Property="Foreground" Value="{DynamicResource PrimaryBtnTextClr}"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -382,7 +383,7 @@ function Update-AppTheme {
             $uiSettings = [Windows.UI.ViewManagement.UISettings]::new()
             
             # Windows native buttons use lighter accents in dark mode, and regular/darker in light mode
-            $colorType = if ($script:isDark) { [Windows.UI.ViewManagement.UIColorType]::AccentLight1 } else { [Windows.UI.ViewManagement.UIColorType]::Accent }
+            $colorType = if ($script:isDark) { [Windows.UI.ViewManagement.UIColorType]::AccentLight1 } else { [Windows.UI.ViewManagement.UIColorType]::AccentDark1 }
             
             $accent = $uiSettings.GetColorValue($colorType)
             $hex = "#{0:X2}{1:X2}{2:X2}" -f $accent.R, $accent.G, $accent.B
@@ -394,6 +395,7 @@ function Update-AppTheme {
         }
         
         $win.Resources["PrimaryClr"] = $brushConverter.ConvertFromString($hex)
+        $win.Resources["PrimaryBtnTextClr"] = $brushConverter.ConvertFromString(if ($script:isDark) { "#000000" } else { "#FFFFFF" })
         
         $helper = New-Object System.Windows.Interop.WindowInteropHelper($win)
         $val = if ($script:isDark) { 1 } else { 0 }
