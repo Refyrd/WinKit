@@ -90,6 +90,7 @@ $xaml = @"
         <SolidColorBrush x:Key="ChkBg"          Color="#2D2D2D"/>
         <SolidColorBrush x:Key="ChkBorder"      Color="#3D3D3D"/>
         <SolidColorBrush x:Key="ChkHoverBorder" Color="#75D2FF"/>
+        <SolidColorBrush x:Key="PrimaryClr"     Color="#55C5FF"/>
 
         <Style TargetType="TabControl">
             <Setter Property="Background" Value="Transparent"/>
@@ -118,7 +119,7 @@ $xaml = @"
                             <Border x:Name="TabBorder" CornerRadius="6" Background="Transparent" Padding="14,7,14,8">
                                 <Grid>
                                     <ContentPresenter ContentSource="Header" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                    <Border x:Name="SelectionIndicator" Height="2.5" CornerRadius="1.5" Background="#55C5FF" 
+                                    <Border x:Name="SelectionIndicator" Height="2.5" CornerRadius="1.5" Background="{DynamicResource PrimaryClr}" 
                                             VerticalAlignment="Bottom" Margin="4,0,4,-6" Visibility="Collapsed"/>
                                 </Grid>
                             </Border>
@@ -169,7 +170,7 @@ $xaml = @"
         </Style>
 
         <Style TargetType="Button" x:Key="PrimaryButton" BasedOn="{StaticResource {x:Type Button}}">
-            <Setter Property="Background" Value="#55C5FF"/>
+            <Setter Property="Background" Value="{DynamicResource PrimaryClr}"/>
             <Setter Property="Foreground" Value="Black"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Template">
@@ -208,8 +209,8 @@ $xaml = @"
                         </StackPanel>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="MainBorder" Property="Background" Value="#4CC2FF"/>
-                                <Setter TargetName="MainBorder" Property="BorderBrush" Value="#4CC2FF"/>
+                                <Setter TargetName="MainBorder" Property="Background" Value="{DynamicResource PrimaryClr}"/>
+                                <Setter TargetName="MainBorder" Property="BorderBrush" Value="{DynamicResource PrimaryClr}"/>
                                 <Setter TargetName="CheckMark" Property="Visibility" Value="Visible"/>
                             </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
@@ -285,7 +286,7 @@ $xaml = @"
                     </Grid.RowDefinitions>
                     <TextBlock Name="LblProgressTitle" Text="Installing Apps..." FontSize="24" FontWeight="SemiBold" Foreground="{DynamicResource AppText}" Margin="0,0,0,15"/>
                     <TextBlock Name="LblProgress" Text="Preparing..." FontSize="16" Foreground="{DynamicResource AppText}" Margin="0,0,0,10" Grid.Row="1"/>
-                    <ProgressBar Name="PbInstall" Height="4" IsIndeterminate="True" Grid.Row="1" VerticalAlignment="Bottom" Margin="0,0,0,0" BorderThickness="0" Background="{DynamicResource ControlHover}" Foreground="#55C5FF"/>
+                    <ProgressBar Name="PbInstall" Height="4" IsIndeterminate="True" Grid.Row="1" VerticalAlignment="Bottom" Margin="0,0,0,0" BorderThickness="0" Background="{DynamicResource ControlHover}" Foreground="{DynamicResource PrimaryClr}"/>
 
                     <Grid Grid.Row="2" Margin="0,15,0,15">
                         <TextBox Name="TxtLog" Background="#1E1E1E" Foreground="#CCCCCC" FontFamily="Consolas" FontSize="13" IsReadOnly="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" BorderThickness="0" Padding="10"/>
@@ -302,17 +303,33 @@ $xaml = @"
 </Window>
 "@
 
-$sysAccentHex = "#55C5FF"
-try {
-    $accentInt = (Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\DWM').ColorizationColor
-    $sysAccentHex = "#{0:X6}" -f ($accentInt -band 0xFFFFFF)
-} catch {}
-
-$xaml = $xaml -replace "#55C5FF", $sysAccentHex
-$xaml = $xaml -replace "#4CC2FF", $sysAccentHex
-
 $reader = (New-Object System.Xml.XmlNodeReader([xml]$xaml))
 $win = [Windows.Markup.XamlReader]::Load($reader)
+
+$brushConverter = [System.Windows.Media.BrushConverter]::new()
+
+function Update-AppTheme {
+    # 1. Update Accent Color
+    $hex = "#55C5FF"
+    try {
+        $palette = Get-ItemProperty 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Accent' -Name AccentPalette -ErrorAction SilentlyContinue
+        if ($palette) {
+            $hex = "#{0:X2}{1:X2}{2:X2}" -f $palette.AccentPalette[32], $palette.AccentPalette[33], $palette.AccentPalette[34]
+        } else {
+            $c = (Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\DWM').ColorizationColor
+            $hex = "#{0:X6}" -f ($c -band 0xFFFFFF)
+        }
+    } catch {}
+    
+    $win.Resources["PrimaryClr"] = $brushConverter.ConvertFromString($hex)
+
+    # 2. Update Dark/Light Mode
+    $regKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize"
+    $isLightReg = (Get-ItemProperty -Path $regKey -Name AppsUseLightTheme -ErrorAction SilentlyContinue).AppsUseLightTheme -eq 1
+    
+    if ($isLightReg) { Set-Theme $lightPalette; $script:isDark = $false }
+    else { Set-Theme $darkPalette; $script:isDark = $true }
+}
 
 $tabCats = $win.FindName("TabCats")
 $btnSelectAll = $win.FindName("BtnSelectAll")
@@ -373,7 +390,44 @@ function Set-Theme($palette) {
     }
 }
 
-if (-not $script:isDark) { Set-Theme $lightPalette }
+function Update-AppTheme {
+    # 1. Update Accent Color
+    $hex = "#55C5FF"
+    try {
+        $palette = Get-ItemProperty 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Accent' -Name AccentPalette -ErrorAction SilentlyContinue
+        if ($palette) {
+            $hex = "#{0:X2}{1:X2}{2:X2}" -f $palette.AccentPalette[32], $palette.AccentPalette[33], $palette.AccentPalette[34]
+        } else {
+            $c = (Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\DWM').ColorizationColor
+            $hex = "#{0:X6}" -f ($c -band 0xFFFFFF)
+        }
+    } catch {}
+    
+    $win.Dispatcher.Invoke({
+        $win.Resources["PrimaryClr"] = $brushConverter.ConvertFromString($hex)
+        
+        # 2. Update Dark/Light Mode
+        $regKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize"
+        $isLightReg = (Get-ItemProperty -Path $regKey -Name AppsUseLightTheme -ErrorAction SilentlyContinue).AppsUseLightTheme -eq 1
+        
+        if ($isLightReg) { Set-Theme $lightPalette; $script:isDark = $false }
+        else { Set-Theme $darkPalette; $script:isDark = $true }
+        
+        $helper = New-Object System.Windows.Interop.WindowInteropHelper($win)
+        $val = if ($script:isDark) { 1 } else { 0 }
+        $bytes = [BitConverter]::GetBytes($val)
+        [Dwm]::DwmSetWindowAttribute($helper.Handle, 20, [ref]$val, 4) | Out-Null
+        [Dwm]::DwmSetWindowAttribute($helper.Handle, 19, [ref]$val, 4) | Out-Null
+    })
+}
+
+# Initial call
+Update-AppTheme
+
+# Register event listener for theme/accent changes
+$sysEvents = [Microsoft.Win32.SystemEvents]
+$eventAction = { Update-AppTheme }
+Register-ObjectEvent -InputObject $sysEvents -EventName "UserPreferenceChanged" -SourceIdentifier "WinKitThemeChange" -Action $eventAction | Out-Null
 
 $btnTheme.Add_Click({
     $script:isDark = -not $script:isDark
@@ -382,6 +436,7 @@ $btnTheme.Add_Click({
     $helper = New-Object System.Windows.Interop.WindowInteropHelper($win)
     $val = if ($script:isDark) { 1 } else { 0 }
     [Dwm]::DwmSetWindowAttribute($helper.Handle, 20, [ref]$val, 4) | Out-Null
+    [Dwm]::DwmSetWindowAttribute($helper.Handle, 19, [ref]$val, 4) | Out-Null
 })
 
 $script:isConsoleVisible = $false
@@ -775,12 +830,11 @@ $btnInstall.Add_Click({
             $logBdr.Child = $tLog
 
             $btnLog = New-Object System.Windows.Controls.Button
-            $btnLog.Content = "Show Log"
-            $btnLog.Padding = "10,2,10,2"
-            $btnLog.Margin = "0,6,0,0"
-            $btnLog.HorizontalAlignment = "Left"
+            $btnLog.Content = "Log"
+            $btnLog.Width = 40
+            $btnLog.Height = 25
             $btnLog.Background = $brushConverter.ConvertFromString("Transparent")
-            $btnLog.Foreground = $brushConverter.ConvertFromString("#55C5FF")
+            $btnLog.Foreground = [System.Windows.Media.SolidColorBrush]$win.Resources["PrimaryClr"]
             $btnLog.BorderThickness = 0
             $btnLog.Cursor = [System.Windows.Input.Cursors]::Hand
             
