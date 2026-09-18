@@ -423,10 +423,20 @@ function Update-AppTheme {
 # Initial call
 Update-AppTheme
 
-# Register event listener for theme/accent changes
-$sysEvents = [Microsoft.Win32.SystemEvents]
-$eventAction = { Update-AppTheme }
-Register-ObjectEvent -InputObject $sysEvents -EventName "UserPreferenceChanged" -SourceIdentifier "WinKitThemeChange" -Action $eventAction | Out-Null
+# Register .NET event listener directly to bypass PS event queue blockage
+$script:ThemeChangedHandler = [Microsoft.Win32.UserPreferenceChangedEventHandler] {
+    param($sender, $e)
+    if ($win.Dispatcher.CheckAccess()) {
+        Update-AppTheme
+    } else {
+        $win.Dispatcher.Invoke({ Update-AppTheme })
+    }
+}
+[Microsoft.Win32.SystemEvents]::add_UserPreferenceChanged($script:ThemeChangedHandler)
+
+$win.Add_Closed({
+    [Microsoft.Win32.SystemEvents]::remove_UserPreferenceChanged($script:ThemeChangedHandler)
+})
 
 $btnTheme.Add_Click({
     $script:isDark = -not $script:isDark
