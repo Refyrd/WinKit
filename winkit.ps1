@@ -367,29 +367,33 @@ function Set-Theme($palette) {
 }
 
 function Update-AppTheme {
-    # 1. Update Accent Color
-    $hex = "#55C5FF"
-    try {
-        [Windows.UI.ViewManagement.UISettings, Windows.UI.ViewManagement, ContentType=WindowsRuntime] | Out-Null
-        $uiSettings = [Windows.UI.ViewManagement.UISettings]::new()
-        $accent = $uiSettings.GetColorValue([Windows.UI.ViewManagement.UIColorType]::Accent)
-        $hex = "#{0:X2}{1:X2}{2:X2}" -f $accent.R, $accent.G, $accent.B
-    } catch {
-        try {
-            $c = (Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\DWM').ColorizationColor
-            $hex = "#{0:X6}" -f ($c -band 0xFFFFFF)
-        } catch {}
-    }
-    
     $win.Dispatcher.Invoke({
-        $win.Resources["PrimaryClr"] = $brushConverter.ConvertFromString($hex)
-        
-        # 2. Update Dark/Light Mode
+        # 1. Update Dark/Light Mode
         $regKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize"
         $isLightReg = (Get-ItemProperty -Path $regKey -Name AppsUseLightTheme -ErrorAction SilentlyContinue).AppsUseLightTheme -eq 1
         
         if ($isLightReg) { Set-Theme $lightPalette; $script:isDark = $false }
         else { Set-Theme $darkPalette; $script:isDark = $true }
+
+        # 2. Update Accent Color (Adaptive for Dark/Light mode)
+        $hex = "#55C5FF"
+        try {
+            [Windows.UI.ViewManagement.UISettings, Windows.UI.ViewManagement, ContentType=WindowsRuntime] | Out-Null
+            $uiSettings = [Windows.UI.ViewManagement.UISettings]::new()
+            
+            # Windows native buttons use lighter accents in dark mode, and regular/darker in light mode
+            $colorType = if ($script:isDark) { [Windows.UI.ViewManagement.UIColorType]::AccentLight1 } else { [Windows.UI.ViewManagement.UIColorType]::Accent }
+            
+            $accent = $uiSettings.GetColorValue($colorType)
+            $hex = "#{0:X2}{1:X2}{2:X2}" -f $accent.R, $accent.G, $accent.B
+        } catch {
+            try {
+                $c = (Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\DWM').ColorizationColor
+                $hex = "#{0:X6}" -f ($c -band 0xFFFFFF)
+            } catch {}
+        }
+        
+        $win.Resources["PrimaryClr"] = $brushConverter.ConvertFromString($hex)
         
         $helper = New-Object System.Windows.Interop.WindowInteropHelper($win)
         $val = if ($script:isDark) { 1 } else { 0 }
