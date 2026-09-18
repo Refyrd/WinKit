@@ -302,6 +302,15 @@ $xaml = @"
 </Window>
 "@
 
+$sysAccentHex = "#55C5FF"
+try {
+    $accentInt = (Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\DWM').ColorizationColor
+    $sysAccentHex = "#{0:X6}" -f ($accentInt -band 0xFFFFFF)
+} catch {}
+
+$xaml = $xaml -replace "#55C5FF", $sysAccentHex
+$xaml = $xaml -replace "#4CC2FF", $sysAccentHex
+
 $reader = (New-Object System.Xml.XmlNodeReader([xml]$xaml))
 $win = [Windows.Markup.XamlReader]::Load($reader)
 
@@ -522,11 +531,18 @@ $btnInstall.Add_Click({
 
         $proc = New-Object System.Diagnostics.Process
         $proc.StartInfo.FileName = "winget"
-        $wArgs = "install --id=$($app.Id) --silent --disable-interactivity --accept-package-agreements --accept-source-agreements"
+        $wArgs = "install --exact --id=$($app.Id) --silent --disable-interactivity --accept-package-agreements --accept-source-agreements"
         
         if ($app.Dep -and $global:depCheckBoxes.ContainsKey($app.Name)) {
             $depChk = $global:depCheckBoxes[$app.Name]
-            if (-not $depChk.IsChecked) { $wArgs += " --skip-dependencies" }
+            if (-not $depChk.IsChecked) { 
+                $wArgs += " --skip-dependencies"
+                
+                # For TeamSpeak 3, explicitly override arguments to prevent Overwolf from installing at all
+                if ($app.Name -eq "TeamSpeak 3") {
+                    $wArgs += ' --override "/S"'
+                }
+            }
         }
         
         $proc.StartInfo.Arguments = $wArgs
@@ -602,8 +618,11 @@ $btnInstall.Add_Click({
             $batPath = "$env:TEMP\winget_run_$($app.Id).bat"
             $vbsPath = "$env:TEMP\winget_run_$($app.Id).vbs"
             
-            $fbArgs = "install --id=$($app.Id) --silent --accept-package-agreements --accept-source-agreements"
-            if ($wArgs -match "--skip-dependencies") { $fbArgs += " --skip-dependencies" }
+            $fbArgs = "install --exact --id=$($app.Id) --silent --accept-package-agreements --accept-source-agreements"
+            if ($wArgs -match "--skip-dependencies") { 
+                $fbArgs += " --skip-dependencies" 
+                if ($app.Name -eq "TeamSpeak 3") { $fbArgs += ' --override "/S"' }
+            }
             $batCmd = "@echo off`nwinget $fbArgs > `"$tmpOut`" 2>&1`necho %ERRORLEVEL% > `"$tmpDone`""
             Set-Content -Path $batPath -Value $batCmd -Encoding ASCII
             
@@ -641,22 +660,23 @@ $btnInstall.Add_Click({
             }
         }
         
-        # Aggressive bundled bloatware cleanup
-        if ($wArgs -match "--skip-dependencies") {
-            if ($app.Name -eq "TeamSpeak 3") {
-                $TxtLog.AppendText("`n[+] Aggressively removing bundled Overwolf...`n")
-                $TxtLog.ScrollToEnd()
-                Start-Process "winget" -ArgumentList "uninstall --id Overwolf.Overwolf --silent --accept-source-agreements" -Wait -NoNewWindow
+        if (-not $global:cancelInstall) {
+            # Aggressive bundled bloatware cleanup
+            if ($wArgs -match "--skip-dependencies") {
+                if ($app.Name -eq "TeamSpeak 3") {
+                    $TxtLog.AppendText("`n[+] Ensuring bundled Overwolf is removed...`n")
+                    $TxtLog.ScrollToEnd()
+                    Start-Process "winget" -ArgumentList "uninstall --exact --id Overwolf.Overwolf --silent --accept-source-agreements" -Wait -NoNewWindow
+                }
+                if ($app.Name -eq "MSI Afterburner") {
+                    $TxtLog.AppendText("`n[+] Aggressively removing bundled RivaTuner...`n")
+                    $TxtLog.ScrollToEnd()
+                    Start-Process "winget" -ArgumentList "uninstall --exact --id Guru3D.RTSS --silent --accept-source-agreements" -Wait -NoNewWindow
+                }
             }
-            if ($app.Name -eq "MSI Afterburner") {
-                $TxtLog.AppendText("`n[+] Aggressively removing bundled RivaTuner...`n")
-                $TxtLog.ScrollToEnd()
-                Start-Process "winget" -ArgumentList "uninstall --id Guru3D.RTSS --silent --accept-source-agreements" -Wait -NoNewWindow
-            }
-        }
 
-        $TxtLog.AppendText("`n---> Done: $($app.Name) (Exit Code: $finalCode)`n")
-        $TxtLog.ScrollToEnd()
+            $TxtLog.AppendText("`n---> Done: $($app.Name) (Exit Code: $finalCode)`n")
+            $TxtLog.ScrollToEnd()
             $installResults += @{ App = $app; Code = $finalCode; Cancelled = $false; Log = $appLog }
             Write-Host "Finished $($app.Name) with code $finalCode" -ForegroundColor Green
             DoEvents
