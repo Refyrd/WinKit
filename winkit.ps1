@@ -379,8 +379,8 @@ function Update-AppTheme {
         # 2. Update Accent Color (Adaptive for Dark/Light mode)
         $hex = "#55C5FF"
         try {
-            [Windows.UI.ViewManagement.UISettings, Windows.UI.ViewManagement, ContentType=WindowsRuntime] | Out-Null
-            $uiSettings = [Windows.UI.ViewManagement.UISettings]::new()
+            $uiType = [Type]::GetType("Windows.UI.ViewManagement.UISettings, Windows.UI.ViewManagement, ContentType=WindowsRuntime")
+            $uiSettings = [Activator]::CreateInstance($uiType)
             
             # Windows native buttons use lighter accents in dark mode, and regular/darker in light mode
             $colorType = if ($script:isDark) { [Windows.UI.ViewManagement.UIColorType]::AccentLight1 } else { [Windows.UI.ViewManagement.UIColorType]::AccentDark1 }
@@ -395,7 +395,8 @@ function Update-AppTheme {
         }
         
         $win.Resources["PrimaryClr"] = $brushConverter.ConvertFromString($hex)
-        $win.Resources["PrimaryBtnTextClr"] = $brushConverter.ConvertFromString(if ($script:isDark) { "#000000" } else { "#FFFFFF" })
+        $textHex = if ($script:isDark) { "#000000" } else { "#FFFFFF" }
+        $win.Resources["PrimaryBtnTextClr"] = $brushConverter.ConvertFromString($textHex)
         
         $helper = New-Object System.Windows.Interop.WindowInteropHelper($win)
         $val = if ($script:isDark) { 1 } else { 0 }
@@ -409,7 +410,7 @@ Update-AppTheme
 
 # Register .NET event listener directly to bypass PS event queue blockage
 $script:ThemeChangedHandler = [Microsoft.Win32.UserPreferenceChangedEventHandler] {
-    param($sender, $e)
+    param($s, $e)
     if ($win.Dispatcher.CheckAccess()) {
         Update-AppTheme
     } else {
