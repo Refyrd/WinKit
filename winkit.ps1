@@ -382,8 +382,8 @@ function Update-AppTheme {
             $uiType = [Type]::GetType("Windows.UI.ViewManagement.UISettings, Windows.UI.ViewManagement, ContentType=WindowsRuntime")
             $uiSettings = [Activator]::CreateInstance($uiType)
             
-            # Windows native buttons use lighter accents in dark mode, and regular/darker in light mode
-            $colorType = if ($script:isDark) { [Windows.UI.ViewManagement.UIColorType]::AccentLight1 } else { [Windows.UI.ViewManagement.UIColorType]::AccentDark1 }
+            # Windows native buttons use lighter accents in dark mode, and regular accents in light mode
+            $colorType = if ($script:isDark) { [Windows.UI.ViewManagement.UIColorType]::AccentLight2 } else { [Windows.UI.ViewManagement.UIColorType]::Accent }
             
             $accent = $uiSettings.GetColorValue($colorType)
             $hex = "#{0:X2}{1:X2}{2:X2}" -f $accent.R, $accent.G, $accent.B
