@@ -1,4 +1,4 @@
-﻿# --- WinKit UI Controller & Event Handlers ---
+# --- WinKit UI Controller & Event Handlers ---
 
 function DoEvents {
     $frame = New-Object System.Windows.Threading.DispatcherFrame
@@ -193,15 +193,17 @@ function Initialize-UIController($winControls) {
         $val = if ($global:isDark) { 1 } else { 0 }
         [Dwm]::DwmSetWindowAttribute($hwnd, 20, [ref]$val, 4) | Out-Null
         
-        $backdrop = 2
-        [Dwm]::DwmSetWindowAttribute($hwnd, 38, [ref]$backdrop, 4) | Out-Null
-        
-        $micaFallback = 1
-        [Dwm]::DwmSetWindowAttribute($hwnd, 1029, [ref]$micaFallback, 4) | Out-Null
+        if ($global:isWin11) {
+            $backdrop = 2
+            [Dwm]::DwmSetWindowAttribute($hwnd, 38, [ref]$backdrop, 4) | Out-Null
 
-        $hwndSource = [System.Windows.Interop.HwndSource]::FromHwnd($hwnd)
-        if ($null -ne $hwndSource) {
-            $hwndSource.CompositionTarget.BackgroundColor = [System.Windows.Media.Colors]::Transparent
+            $micaFallback = 1
+            [Dwm]::DwmSetWindowAttribute($hwnd, 1029, [ref]$micaFallback, 4) | Out-Null
+
+            $hwndSource = [System.Windows.Interop.HwndSource]::FromHwnd($hwnd)
+            if ($null -ne $hwndSource) {
+                $hwndSource.CompositionTarget.BackgroundColor = [System.Windows.Media.Colors]::Transparent
+            }
         }
     })
 

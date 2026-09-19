@@ -1,4 +1,4 @@
-﻿# --- WinKit Theme Engine (WinRT Accent & Fluent Adaptive Theming) ---
+# --- WinKit Theme Engine (WinRT Accent & Fluent Adaptive Theming) ---
 
 Add-Type -TypeDefinition @"
 using System;
@@ -33,14 +33,16 @@ $global:darkPalette = @{
     ChkHoverBorder = "#75D2FF"
 }
 
+$global:isWin11 = [Environment]::OSVersion.Version.Build -ge 22000
+
 $global:lightPalette = @{
-    AppBg          = "#C0F3F3F3"
+    AppBg          = if ($global:isWin11) { "#C0F3F3F3" } else { "#F3F3F3" }
     AppText        = "#1B1B1B"
     ControlBg      = "#FFFFFF"
     BorderClr      = "#D1D1D1"
     HoverBg        = "#E5E5E5"
     PressedBg      = "#D0D0D0"
-    BottomBarBg    = "#90FFFFFF"
+    BottomBarBg    = if ($global:isWin11) { "#90FFFFFF" } else { "#E0E0E0" }
     TabSelBg       = "#15000000"
     TabHoverBg     = "#08000000"
     ChkBg          = "#FFFFFF"

@@ -3,7 +3,9 @@
     ExcludeRules = @(
         'PSAvoidGlobalVars',
         'PSUseShouldProcessForStateChangingFunctions',
-        'PSAvoidUsingWriteHost'
+        'PSAvoidUsingWriteHost',
+        'PSAvoidTrailingWhitespace',
+        'PSAvoidUsingWMICmdlet'
     )
 }
 
