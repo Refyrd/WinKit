@@ -32,373 +32,234 @@ function Start-AppsInstallation($toInstall, $winControls) {
         $TxtLog.ScrollToEnd()
         DoEvents
 
-        $proc = New-Object System.Diagnostics.Process
-        $proc.StartInfo.FileName = "winget"
         $wArgs = "install --exact --id=$($app.Id) --source=winget --silent --disable-interactivity --accept-package-agreements --accept-source-agreements"
-        
         if ($app.Dep -and $global:depCheckBoxes.ContainsKey($app.Name)) {
             $depChk = $global:depCheckBoxes[$app.Name]
             if (-not $depChk.IsChecked) { 
                 $wArgs += " --skip-dependencies"
             }
         }
-        
-        $proc.StartInfo.Arguments = $wArgs
-        $proc.StartInfo.RedirectStandardOutput = $true
-        $proc.StartInfo.RedirectStandardError = $true
-        $proc.StartInfo.UseShellExecute = $false
-        $proc.StartInfo.CreateNoWindow = $true
-        $proc.StartInfo.StandardOutputEncoding = [System.Text.Encoding]::UTF8
-        $proc.StartInfo.StandardErrorEncoding = [System.Text.Encoding]::UTF8
 
         $useFallback = ($app.Scope -eq "User" -and $global:isAdmin)
         $finalCode = 0
-        
-        if (-not $useFallback) {
-            $proc.Start() | Out-Null
-            Write-Host "Started winget process for $($app.Name)..." -ForegroundColor Cyan
-            
-            $lineBuffer = ""
-            $dlStartTime = [DateTime]::UtcNow
-            $dlTotalBytes = 0
+
+        $tmpOut = "$env:TEMP\winget_out_$($app.Id).log"
+        $tmpDone = "$env:TEMP\winget_done_$($app.Id).log"
+        $batPath = "$env:TEMP\winget_run_$($app.Id).bat"
+        $vbsPath = "$env:TEMP\winget_run_$($app.Id).vbs"
+
+        # Helper to run process and stream output without blocking the UI
+        $runWinget = {
+            param([bool]$asUserFallback)
+
+            if (Test-Path $tmpOut) { Remove-Item $tmpOut -Force -ErrorAction SilentlyContinue }
+            if (Test-Path $tmpDone) { Remove-Item $tmpDone -Force -ErrorAction SilentlyContinue }
+            if (Test-Path $batPath) { Remove-Item $batPath -Force -ErrorAction SilentlyContinue }
+            if (Test-Path $vbsPath) { Remove-Item $vbsPath -Force -ErrorAction SilentlyContinue }
+
+            $batCmd = "@echo off`r`nwinget $wArgs > `"$tmpOut`" 2>&1`r`necho %ERRORLEVEL% > `"$tmpDone`""
+            [System.IO.File]::WriteAllText($batPath, $batCmd, [System.Text.Encoding]::ASCII)
+
+            $procHandle = $null
+            if ($asUserFallback) {
+                $vbsCmd = "Set WshShell = CreateObject(`"WScript.Shell`")`r`nWshShell.Run chr(34) & `"$batPath`" & Chr(34), 0`r`nSet WshShell = Nothing"
+                [System.IO.File]::WriteAllText($vbsPath, $vbsCmd, [System.Text.Encoding]::ASCII)
+                Start-Process "explorer.exe" -ArgumentList "`"$vbsPath`""
+            } else {
+                $psi = New-Object System.Diagnostics.ProcessStartInfo
+                $psi.FileName = "cmd.exe"
+                $psi.Arguments = "/c `"$batPath`""
+                $psi.CreateNoWindow = $true
+                $psi.UseShellExecute = $false
+                $procHandle = [System.Diagnostics.Process]::Start($psi)
+            }
+
+            # Background download tracker
+            $script:bgActive = $true
+            $script:bgDlBytes = 0
+            $script:bgDlTotal = 0
             $dlUrl = $null
             $isDownloading = $false
-            $lastProgUpdate = [DateTime]::MinValue
-            $progressAppended = $false
             $lastProgText = ""
+            $progressAppended = $false
             $progressStartPos = 0
-            $global:currentDlTotalBytes = 0
-    
-            while (-not $proc.HasExited) {
+
+            [System.Threading.ThreadPool]::QueueUserWorkItem({
+                param($state)
+                $targetUrl = $state.Url
+                while ($script:bgActive) {
+                    try {
+                        $do = Get-DeliveryOptimizationStatus -ErrorAction SilentlyContinue | Where-Object { 
+                            $_.PredefinedCallerApplication -eq "Windows Package Manager" -or ($targetUrl -and $_.SourceURL -eq $targetUrl)
+                        } | Select-Object -First 1
+                        if ($null -ne $do -and $do.TotalBytesDownloaded -gt 0) {
+                            $script:bgDlBytes = $do.TotalBytesDownloaded
+                            if ($do.FileSize -gt 0) { $script:bgDlTotal = $do.FileSize }
+                        }
+                    } catch {}
+                    [System.Threading.Thread]::Sleep(400)
+                }
+            }, @{ Url = $dlUrl }) | Out-Null
+
+            $lastPos = 0
+            while (-not (Test-Path $tmpDone)) {
                 if ($global:cancelInstall) {
-                    try { $proc.Kill() } catch {}
+                    if ($null -ne $procHandle) {
+                        try {
+                            Start-Process "taskkill.exe" -ArgumentList "/F /T /PID $($procHandle.Id)" -NoNewWindow -Wait -ErrorAction SilentlyContinue
+                        } catch {}
+                    }
+                    Get-Process -Name "winget" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
                     break
                 }
-                while ($proc.StandardOutput.Peek() -gt -1) {
-                    $char = [char]$proc.StandardOutput.Read()
-                    $TxtLog.AppendText($char)
-                    $appLog += $char
-                    try { [Console]::Write($char) } catch {}
-                    
-                    if ($char -eq "`n" -or $char -eq "`r") {
-                        if ($lineBuffer -match "(\d+(?:\.\d+)?\s*[KMG]B\s*/\s*\d+(?:\.\d+)?\s*[KMG]B|\d+\s*%)") {
-                            $LblProgress.Text = "Installing ($count / $($toInstall.Count)): $($app.Name) - $($matches[1])"
-                        }
-                        if ($lineBuffer -match "(?i)Downloading\s+(https?://[^\s]+)") {
-                            $dlUrl = $matches[1]
-                            $isDownloading = $true
-                            $dlStartTime = [DateTime]::UtcNow
-                            $dlTotalBytes = 0
-                            $progressAppended = $false
-                            $lastProgText = ""
-                            $global:currentDlTotalBytes = 0
-                            [System.Threading.ThreadPool]::QueueUserWorkItem({
-                                param($u)
-                                try {
-                                    $req = [System.Net.HttpWebRequest]::Create($u)
-                                    $req.Method = "HEAD"
-                                    $req.Timeout = 2500
-                                    $resp = $req.GetResponse()
-                                    $global:currentDlTotalBytes = $resp.ContentLength
-                                    $resp.Close()
-                                } catch {}
-                            }, $dlUrl) | Out-Null
-                        }
-                        if ($lineBuffer -match "(?i)(Successfully verified|Starting package install|Успешно проверен|Установка пакета)") {
-                            if ($isDownloading -and $progressAppended) {
-                                $TxtLog.AppendText("`n")
-                                $TxtLog.ScrollToEnd()
-                            }
-                            $isDownloading = $false
-                            $PbInstall.IsIndeterminate = $true
-                            $LblProgress.Text = "Installing ($count / $($toInstall.Count)): $($app.Name)"
-                        }
-                        $lineBuffer = ""
-                    } else {
-                        $lineBuffer += $char
-                    }
-                    
-                    $TxtLog.ScrollToEnd()
-                }
 
-                if ($isDownloading) {
-                    if (-not $dlTotalBytes -and $global:currentDlTotalBytes -gt 0) {
-                        $dlTotalBytes = $global:currentDlTotalBytes
-                    }
-                    $now = [DateTime]::UtcNow
-                    if (($now - $lastProgUpdate).TotalMilliseconds -ge 200) {
-                        $lastProgUpdate = $now
-                        $currBytes = 0
-                        try {
-                            $do = Get-DeliveryOptimizationStatus -ErrorAction SilentlyContinue | Where-Object { 
-                                $_.PredefinedCallerApplication -eq "Windows Package Manager" -or 
-                                ($dlUrl -and $_.SourceURL -eq $dlUrl)
-                            } | Select-Object -First 1
-                            if ($do -and $do.TotalBytesDownloaded -gt 0) {
-                                $currBytes = $do.TotalBytesDownloaded
-                                if (-not $dlTotalBytes -and $do.FileSize -gt 0) { $dlTotalBytes = $do.FileSize }
-                            }
-                        } catch {}
-                        
-                        if ($currBytes -le 0) {
-                            try {
-                                $tFiles = Get-ChildItem -Path "$env:TEMP\WinGet", "$env:LOCALAPPDATA\Temp\WinGet" -Recurse -File -ErrorAction SilentlyContinue |
-                                    Where-Object { $_.DirectoryName -like "*$($app.Id)*" -and $_.LastWriteTimeUtc -ge $dlStartTime.AddSeconds(-2) }
-                                if ($tFiles) {
-                                    $currBytes = ($tFiles | Measure-Object -Property Length -Sum).Sum
-                                }
-                            } catch {}
-                        }
-                        
-                        if ($currBytes -gt 0 -or $dlTotalBytes -gt 0) {
-                            $currMB = [Math]::Round($currBytes / 1MB, 1)
-                            if ($dlTotalBytes -gt 0) {
-                                $totMB = [Math]::Round($dlTotalBytes / 1MB, 1)
-                                $pct = [Math]::Min(100, [Math]::Max(0, [Math]::Round(($currBytes / $dlTotalBytes) * 100)))
-                                $progStr = "$currMB MB / $totMB MB ($pct%)"
-                                $PbInstall.IsIndeterminate = $false
-                                $PbInstall.Value = $pct
-                            } else {
-                                $progStr = "$currMB MB"
-                            }
-                            
-                            $LblProgress.Text = "Installing ($count / $($toInstall.Count)): $($app.Name) - $progStr"
-                            
-                            if ($progStr -ne $lastProgText) {
-                                $lastProgText = $progStr
-                                $barLen = 20
-                                if ($dlTotalBytes -gt 0) {
-                                    $f = [Math]::Floor(($pct / 100) * $barLen)
-                                    $e = $barLen - $f
-                                    $bar = ("█" * $f) + ("░" * $e)
-                                    $pLine = "  $bar  $progStr"
-                                } else {
-                                    $pLine = "  Downloading: $progStr"
-                                }
-                                
-                                if (-not $progressAppended) {
-                                    $progressStartPos = $TxtLog.Text.Length
-                                    $TxtLog.AppendText("`n" + $pLine)
-                                    $progressAppended = $true
-                                } else {
-                                    $curTxt = $TxtLog.Text
-                                    if ($curTxt.Length -ge $progressStartPos) {
-                                        $TxtLog.Text = $curTxt.Substring(0, $progressStartPos) + "`n" + $pLine
-                                    }
-                                }
-                                $TxtLog.ScrollToEnd()
-                            }
-                        }
-                    }
-                }
-                DoEvents
-                Start-Sleep -Milliseconds 20
-            }
-    
-            if (-not $global:cancelInstall) {
-                $out = $proc.StandardOutput.ReadToEnd()
-                $err = $proc.StandardError.ReadToEnd()
-                if ($out) { $TxtLog.AppendText($out); $appLog += $out; try { [Console]::Write($out) } catch {} }
-                if ($err) { $TxtLog.AppendText($err); $appLog += $err; try { [Console]::Write($err) } catch {} }
-                
-                $finalCode = $proc.ExitCode
-                
-                if ($appLog -match "cannot be run from an administrator context") {
-                    $useFallback = $true
-                    $TxtLog.AppendText("`n[!] Administrator block detected. Retrying as normal user in background...`n")
-                    $TxtLog.ScrollToEnd()
-                    Write-Host "Admin block detected for $($app.Name). Retrying via explorer.exe..." -ForegroundColor Yellow
-                }
-            }
-        } else {
-            $TxtLog.AppendText("`n[!] App requires User-Scope. Installing via background user context...`n")
-            $TxtLog.ScrollToEnd()
-            Write-Host "App requires User-Scope ($($app.Name)). Routing through explorer.exe..." -ForegroundColor Cyan
-        }
-
-        if ($useFallback -and -not $global:cancelInstall) {
-            $tmpOut = "$env:TEMP\winget_out_$($app.Id).log"
-            $tmpDone = "$env:TEMP\winget_done_$($app.Id).log"
-            if (Test-Path $tmpOut) { Remove-Item $tmpOut -Force }
-            if (Test-Path $tmpDone) { Remove-Item $tmpDone -Force }
-            
-            $batPath = "$env:TEMP\winget_run_$($app.Id).bat"
-            $vbsPath = "$env:TEMP\winget_run_$($app.Id).vbs"
-            
-            $fbArgs = "install --exact --id=$($app.Id) --source=winget --silent --disable-interactivity --accept-package-agreements --accept-source-agreements"
-            if ($wArgs -match "--skip-dependencies") { 
-                $fbArgs += " --skip-dependencies" 
-            }
-            $batCmd = "@echo off`nwinget $fbArgs > `"$tmpOut`" 2>&1`necho %ERRORLEVEL% > `"$tmpDone`""
-            Set-Content -Path $batPath -Value $batCmd -Encoding ASCII
-            
-            $vbsCmd = "Set WshShell = CreateObject(`"WScript.Shell`")`nWshShell.Run chr(34) & `"$batPath`" & Chr(34), 0`nSet WshShell = Nothing"
-            Set-Content -Path $vbsPath -Value $vbsCmd -Encoding ASCII
-            
-            Start-Process "explorer.exe" -ArgumentList "`"$vbsPath`""
-            
-            $fbDlStartTime = [DateTime]::UtcNow
-            $fbDlTotalBytes = 0
-            $fbDlUrl = $null
-            $fbIsDownloading = $false
-            $fbLastProgUpdate = [DateTime]::MinValue
-            $fbProgressAppended = $false
-            $fbLastProgText = ""
-            $fbProgressStartPos = 0
-            $global:fbCurrentDlTotalBytes = 0
-            $lastSize = 0
-            while (-not (Test-Path $tmpDone)) {
-                if ($global:cancelInstall) { break }
                 if (Test-Path $tmpOut) {
                     try {
-                        $fs = New-Object System.IO.FileStream($tmpOut, [System.IO.FileMode]::OpenOrCreate, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
-                        $sr = New-Object System.IO.StreamReader($fs)
-                        $sr.BaseStream.Seek($lastSize, [System.IO.SeekOrigin]::Begin) | Out-Null
-                        $newText = $sr.ReadToEnd()
-                        $lastSize = $sr.BaseStream.Position
-                        $sr.Close()
-                        
-                        if ($newText) {
-                            $TxtLog.AppendText($newText)
-                            $appLog += $newText
-                            $TxtLog.ScrollToEnd()
-                            try { [Console]::Write($newText) } catch {}
+                        $fs = New-Object System.IO.FileStream($tmpOut, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
+                        if ($fs.Length -gt $lastPos) {
+                            $fs.Seek($lastPos, [System.IO.SeekOrigin]::Begin) | Out-Null
+                            $sr = New-Object System.IO.StreamReader($fs, [System.Text.Encoding]::UTF8)
+                            $chunk = $sr.ReadToEnd()
+                            $lastPos = $fs.Position
+                            $sr.Close()
 
-                            if ($newText -match "(?i)Downloading\s+(https?://[^\s]+)") {
-                                $fbDlUrl = $matches[1]
-                                $fbIsDownloading = $true
-                                $fbDlStartTime = [DateTime]::UtcNow
-                                $fbDlTotalBytes = 0
-                                $fbProgressAppended = $false
-                                $fbLastProgText = ""
-                                $global:fbCurrentDlTotalBytes = 0
-                                [System.Threading.ThreadPool]::QueueUserWorkItem({
-                                    param($u)
-                                    try {
-                                        $req = [System.Net.HttpWebRequest]::Create($u)
-                                        $req.Method = "HEAD"
-                                        $req.Timeout = 2500
-                                        $resp = $req.GetResponse()
-                                        $global:fbCurrentDlTotalBytes = $resp.ContentLength
-                                        $resp.Close()
-                                    } catch {}
-                                }, $fbDlUrl) | Out-Null
-                            }
-                            if ($newText -match "(?i)(Successfully verified|Starting package install|Успешно проверен|Установка пакета)") {
-                                if ($fbIsDownloading -and $fbProgressAppended) {
-                                    $TxtLog.AppendText("`n")
-                                    $TxtLog.ScrollToEnd()
+                            if ($chunk) {
+                                $TxtLog.AppendText($chunk)
+                                $script:currentAppLog += $chunk
+                                $TxtLog.ScrollToEnd()
+                                try { [Console]::Write($chunk) } catch {}
+
+                                if ($chunk -match "(?i)Downloading\s+(https?://[^\s]+)") {
+                                    $dlUrl = $matches[1]
+                                    $isDownloading = $true
+                                    $progressAppended = $false
+                                    $lastProgText = ""
                                 }
-                                $fbIsDownloading = $false
-                                $PbInstall.IsIndeterminate = $true
-                                $LblProgress.Text = "Installing ($count / $($toInstall.Count)): $($app.Name)"
+
+                                if ($chunk -match "(?i)(Successfully verified|Starting package install|Успешно проверен|Установка пакета)") {
+                                    if ($isDownloading -and $progressAppended) {
+                                        $TxtLog.AppendText("`n")
+                                        $TxtLog.ScrollToEnd()
+                                    }
+                                    $isDownloading = $false
+                                    $PbInstall.IsIndeterminate = $true
+                                    $LblProgress.Text = "Installing ($count / $($toInstall.Count)): $($app.Name)"
+                                }
                             }
                         }
+                        $fs.Close()
                     } catch {}
                 }
 
-                if ($fbIsDownloading) {
-                    if (-not $fbDlTotalBytes -and $global:fbCurrentDlTotalBytes -gt 0) {
-                        $fbDlTotalBytes = $global:fbCurrentDlTotalBytes
-                    }
-                    $now = [DateTime]::UtcNow
-                    if (($now - $fbLastProgUpdate).TotalMilliseconds -ge 200) {
-                        $fbLastProgUpdate = $now
-                        $currBytes = 0
-                        try {
-                            $do = Get-DeliveryOptimizationStatus -ErrorAction SilentlyContinue | Where-Object { 
-                                $_.PredefinedCallerApplication -eq "Windows Package Manager" -or 
-                                ($fbDlUrl -and $_.SourceURL -eq $fbDlUrl)
-                            } | Select-Object -First 1
-                            if ($do -and $do.TotalBytesDownloaded -gt 0) {
-                                $currBytes = $do.TotalBytesDownloaded
-                                if (-not $fbDlTotalBytes -and $do.FileSize -gt 0) { $fbDlTotalBytes = $do.FileSize }
-                            }
-                        } catch {}
-                        
-                        if ($currBytes -le 0) {
-                            try {
-                                $tFiles = Get-ChildItem -Path "$env:TEMP\WinGet", "$env:LOCALAPPDATA\Temp\WinGet" -Recurse -File -ErrorAction SilentlyContinue |
-                                    Where-Object { $_.DirectoryName -like "*$($app.Id)*" -and $_.LastWriteTimeUtc -ge $fbDlStartTime.AddSeconds(-2) }
-                                if ($tFiles) {
-                                    $currBytes = ($tFiles | Measure-Object -Property Length -Sum).Sum
-                                }
-                            } catch {}
+                # Update progress bar if downloading
+                if ($isDownloading) {
+                    $currBytes = $script:bgDlBytes
+                    $dlTotalBytes = $script:bgDlTotal
+
+                    if ($currBytes -gt 0 -or $dlTotalBytes -gt 0) {
+                        $currMB = [Math]::Round($currBytes / 1MB, 1)
+                        if ($dlTotalBytes -gt 0) {
+                            $totMB = [Math]::Round($dlTotalBytes / 1MB, 1)
+                            $pct = [Math]::Min(100, [Math]::Max(0, [Math]::Round(($currBytes / $dlTotalBytes) * 100)))
+                            $progStr = "$currMB MB / $totMB MB ($pct%)"
+                            $PbInstall.IsIndeterminate = $false
+                            $PbInstall.Value = $pct
+                        } else {
+                            $progStr = "$currMB MB"
                         }
-                        
-                        if ($currBytes -gt 0 -or $fbDlTotalBytes -gt 0) {
-                            $currMB = [Math]::Round($currBytes / 1MB, 1)
-                            if ($fbDlTotalBytes -gt 0) {
-                                $totMB = [Math]::Round($fbDlTotalBytes / 1MB, 1)
-                                $pct = [Math]::Min(100, [Math]::Max(0, [Math]::Round(($currBytes / $fbDlTotalBytes) * 100)))
-                                $progStr = "$currMB MB / $totMB MB ($pct%)"
-                                $PbInstall.IsIndeterminate = $false
-                                $PbInstall.Value = $pct
+
+                        $LblProgress.Text = "Installing ($count / $($toInstall.Count)): $($app.Name) - $progStr"
+
+                        if ($progStr -ne $lastProgText) {
+                            $lastProgText = $progStr
+                            $barLen = 20
+                            if ($dlTotalBytes -gt 0) {
+                                $f = [Math]::Floor(($pct / 100) * $barLen)
+                                $e = $barLen - $f
+                                $bar = ("█" * $f) + ("░" * $e)
+                                $pLine = "  $bar  $progStr"
                             } else {
-                                $progStr = "$currMB MB"
+                                $pLine = "  Downloading: $progStr"
                             }
-                            
-                            $LblProgress.Text = "Installing ($count / $($toInstall.Count)): $($app.Name) - $progStr"
-                            
-                            if ($progStr -ne $fbLastProgText) {
-                                $fbLastProgText = $progStr
-                                $barLen = 20
-                                if ($fbDlTotalBytes -gt 0) {
-                                    $f = [Math]::Floor(($pct / 100) * $barLen)
-                                    $e = $barLen - $f
-                                    $bar = ("█" * $f) + ("░" * $e)
-                                    $pLine = "  $bar  $progStr"
-                                } else {
-                                    $pLine = "  Downloading: $progStr"
+
+                            if (-not $progressAppended) {
+                                $progressStartPos = $TxtLog.Text.Length
+                                $TxtLog.AppendText("`n" + $pLine)
+                                $progressAppended = $true
+                            } else {
+                                $curTxt = $TxtLog.Text
+                                if ($curTxt.Length -ge $progressStartPos) {
+                                    $TxtLog.Text = $curTxt.Substring(0, $progressStartPos) + "`n" + $pLine
                                 }
-                                
-                                if (-not $fbProgressAppended) {
-                                    $fbProgressStartPos = $TxtLog.Text.Length
-                                    $TxtLog.AppendText("`n" + $pLine)
-                                    $fbProgressAppended = $true
-                                } else {
-                                    $curTxt = $TxtLog.Text
-                                    if ($curTxt.Length -ge $fbProgressStartPos) {
-                                        $TxtLog.Text = $curTxt.Substring(0, $fbProgressStartPos) + "`n" + $pLine
-                                    }
-                                }
-                                $TxtLog.ScrollToEnd()
                             }
+                            $TxtLog.ScrollToEnd()
                         }
                     }
                 }
+
                 DoEvents
-                Start-Sleep -Milliseconds 100
+                Start-Sleep -Milliseconds 40
             }
-            
-            # Final drain of any remaining text written just before completion
+
+            $script:bgActive = $false
+
+            # Drain any remaining bytes from the log file
             if (Test-Path $tmpOut) {
                 try {
                     $fs = New-Object System.IO.FileStream($tmpOut, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
-                    $sr = New-Object System.IO.StreamReader($fs)
-                    $sr.BaseStream.Seek($lastSize, [System.IO.SeekOrigin]::Begin) | Out-Null
-                    $remText = $sr.ReadToEnd()
-                    $sr.Close()
-                    if ($remText) {
-                        $TxtLog.AppendText($remText)
-                        $appLog += $remText
-                        $TxtLog.ScrollToEnd()
-                        try { [Console]::Write($remText) } catch {}
+                    if ($fs.Length -gt $lastPos) {
+                        $fs.Seek($lastPos, [System.IO.SeekOrigin]::Begin) | Out-Null
+                        $sr = New-Object System.IO.StreamReader($fs, [System.Text.Encoding]::UTF8)
+                        $remText = $sr.ReadToEnd()
+                        $sr.Close()
+                        if ($remText) {
+                            $TxtLog.AppendText($remText)
+                            $script:currentAppLog += $remText
+                            $TxtLog.ScrollToEnd()
+                            try { [Console]::Write($remText) } catch {}
+                        }
                     }
+                    $fs.Close()
                 } catch {}
             }
-            
+
+            $retCode = -1
             if (Test-Path $tmpDone) {
-                $finalCode = (Get-Content $tmpDone).Trim() -as [int]
+                try {
+                    $retCode = (Get-Content $tmpDone -Raw).Trim() -as [int]
+                } catch {}
+            }
+            return $retCode
+        }
+
+        $script:currentAppLog = ""
+        if (-not $useFallback) {
+            $finalCode = & $runWinget $false
+
+            if ($script:currentAppLog -match "cannot be run from an administrator context" -and -not $global:cancelInstall) {
+                $TxtLog.AppendText("`n[!] Administrator block detected. Retrying as normal user in background...`n")
+                $TxtLog.ScrollToEnd()
+                Write-Host "Admin block detected for $($app.Name). Retrying via explorer.exe..." -ForegroundColor Yellow
+                $useFallback = $true
             }
         }
-        
+
+        if ($useFallback -and -not $global:cancelInstall) {
+            $finalCode = & $runWinget $true
+        }
+
+        $appLog = $script:currentAppLog
+
+        # Cleanup temporary runner files
+        Remove-Item $tmpOut, $tmpDone, $batPath, $vbsPath -Force -ErrorAction SilentlyContinue
+
         if (-not $global:cancelInstall) {
-            # Aggressive bundled bloatware cleanup & background downloader eradication
+            # Bundled bloatware cleanup & background downloader eradication
             if ($wArgs -match "--skip-dependencies") {
                 if ($app.Name -eq "TeamSpeak 3") {
                     $TxtLog.AppendText("`n[+] Ensuring bundled Overwolf is removed...`n")
                     $TxtLog.ScrollToEnd()
+                    DoEvents
                     
                     # 1. Kill background NSIS downloader stub and active Overwolf processes
                     Get-Process -Name "Un_A", "Overwolf*", "OWClient*", "OWLauncher*" -ErrorAction SilentlyContinue | Stop-Process -Force
@@ -417,8 +278,9 @@ function Start-AppsInstallation($toInstall, $winControls) {
                     Remove-Item "HKCU:\Software\OverwolfPersist", "HKLM:\Software\WOW6432Node\OverwolfPersist" -Recurse -Force -ErrorAction SilentlyContinue
                 }
                 if ($app.Name -eq "MSI Afterburner") {
-                    $TxtLog.AppendText("`n[+] Aggressively removing bundled RivaTuner...`n")
+                    $TxtLog.AppendText("`n[+] Removing bundled RivaTuner...`n")
                     $TxtLog.ScrollToEnd()
+                    DoEvents
                     Start-Process "winget" -ArgumentList "uninstall --exact --id Guru3D.RTSS --silent --accept-source-agreements" -Wait -NoNewWindow -ErrorAction SilentlyContinue
                 }
             }
@@ -519,21 +381,22 @@ function Start-AppsInstallation($toInstall, $winControls) {
         $statusDot.Height = 10
         $statusDot.Fill = $global:brushConverter.ConvertFromString($statusColor)
         $statusDot.VerticalAlignment = "Center"
-        $statusDot.Margin = "0,0,12,0"
+        $statusDot.Margin = "4,0,12,0"
         [System.Windows.Controls.Grid]::SetColumn($statusDot, 0)
         [System.Windows.Controls.Grid]::SetRow($statusDot, 0)
         $cardGrid.Children.Add($statusDot) | Out-Null
 
-        # App Title & Status Text
+        # App Info (Name & Status Description)
         $titlePanel = New-Object System.Windows.Controls.StackPanel
         $titlePanel.Orientation = "Vertical"
+        $titlePanel.VerticalAlignment = "Center"
         [System.Windows.Controls.Grid]::SetColumn($titlePanel, 1)
         [System.Windows.Controls.Grid]::SetRow($titlePanel, 0)
 
         $appName = New-Object System.Windows.Controls.TextBlock
         $appName.Text = $res.App.Name
-        $appName.FontWeight = "SemiBold"
         $appName.FontSize = 14
+        $appName.FontWeight = [System.Windows.FontWeights]::SemiBold
         $appName.Foreground = $global:win.Resources["AppText"]
         $titlePanel.Children.Add($appName) | Out-Null
 
@@ -603,4 +466,3 @@ function Start-AppsInstallation($toInstall, $winControls) {
     $BtnCancelInstall.Content = "Close"
     $BtnCancelInstall.IsEnabled = $true
 }
-
