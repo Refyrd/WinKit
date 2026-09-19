@@ -90,7 +90,9 @@ $xaml = @"
         <SolidColorBrush x:Key="ChkBg"          Color="#2D2D2D"/>
         <SolidColorBrush x:Key="ChkBorder"      Color="#3D3D3D"/>
         <SolidColorBrush x:Key="ChkHoverBorder" Color="#75D2FF"/>
-        <SolidColorBrush x:Key="PrimaryClr"     Color="#55C5FF"/>
+        <SolidColorBrush x:Key="PrimaryClr"        Color="#55C5FF"/>
+        <SolidColorBrush x:Key="PrimaryHoverClr"   Color="#75D2FF"/>
+        <SolidColorBrush x:Key="PrimaryPressedClr" Color="#30B5FF"/>
         <SolidColorBrush x:Key="PrimaryBtnTextClr" Color="White"/>
 
         <Style TargetType="TabControl">
@@ -182,10 +184,10 @@ $xaml = @"
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#75D2FF"/>
+                                <Setter Property="Background" Value="{DynamicResource PrimaryHoverClr}"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter Property="Background" Value="#30B5FF"/>
+                                <Setter Property="Background" Value="{DynamicResource PrimaryPressedClr}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -378,23 +380,43 @@ function Update-AppTheme {
 
         # 2. Update Accent Color (Adaptive for Dark/Light mode)
         $hex = "#55C5FF"
+        $hoverHex = "#75D2FF"
+        $pressedHex = "#30B5FF"
         try {
             $uiType = [Type]::GetType("Windows.UI.ViewManagement.UISettings, Windows.UI.ViewManagement, ContentType=WindowsRuntime")
             $uiSettings = [Activator]::CreateInstance($uiType)
             
             # Windows native buttons use lighter accents in dark mode, and regular accents in light mode
-            $colorType = if ($script:isDark) { [Windows.UI.ViewManagement.UIColorType]::AccentLight2 } else { [Windows.UI.ViewManagement.UIColorType]::Accent }
+            if ($script:isDark) {
+                $baseType = [Windows.UI.ViewManagement.UIColorType]::AccentLight2
+                $hoverType = [Windows.UI.ViewManagement.UIColorType]::AccentLight3
+                $pressedType = [Windows.UI.ViewManagement.UIColorType]::AccentLight1
+            } else {
+                $baseType = [Windows.UI.ViewManagement.UIColorType]::Accent
+                $hoverType = [Windows.UI.ViewManagement.UIColorType]::AccentLight1
+                $pressedType = [Windows.UI.ViewManagement.UIColorType]::AccentDark1
+            }
             
-            $accent = $uiSettings.GetColorValue($colorType)
+            $accent = $uiSettings.GetColorValue($baseType)
             $hex = "#{0:X2}{1:X2}{2:X2}" -f $accent.R, $accent.G, $accent.B
+
+            $hover = $uiSettings.GetColorValue($hoverType)
+            $hoverHex = "#{0:X2}{1:X2}{2:X2}" -f $hover.R, $hover.G, $hover.B
+
+            $pressed = $uiSettings.GetColorValue($pressedType)
+            $pressedHex = "#{0:X2}{1:X2}{2:X2}" -f $pressed.R, $pressed.G, $pressed.B
         } catch {
             try {
                 $c = (Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\DWM').ColorizationColor
                 $hex = "#{0:X6}" -f ($c -band 0xFFFFFF)
+                $hoverHex = $hex
+                $pressedHex = $hex
             } catch {}
         }
         
         $win.Resources["PrimaryClr"] = $brushConverter.ConvertFromString($hex)
+        $win.Resources["PrimaryHoverClr"] = $brushConverter.ConvertFromString($hoverHex)
+        $win.Resources["PrimaryPressedClr"] = $brushConverter.ConvertFromString($pressedHex)
         $textHex = if ($script:isDark) { "#000000" } else { "#FFFFFF" }
         $win.Resources["PrimaryBtnTextClr"] = $brushConverter.ConvertFromString($textHex)
         
@@ -427,10 +449,8 @@ $btnTheme.Add_Click({
     $script:isDark = -not $script:isDark
     if ($script:isDark) { Set-Theme $darkPalette } else { Set-Theme $lightPalette }
     
-    $helper = New-Object System.Windows.Interop.WindowInteropHelper($win)
-    $val = if ($script:isDark) { 1 } else { 0 }
-    [Dwm]::DwmSetWindowAttribute($helper.Handle, 20, [ref]$val, 4) | Out-Null
-    [Dwm]::DwmSetWindowAttribute($helper.Handle, 19, [ref]$val, 4) | Out-Null
+    # Refresh accent & button colors for new mode
+    Update-AppTheme
 })
 
 $script:isConsoleVisible = $false
@@ -667,7 +687,7 @@ $btnInstall.Add_Click({
             $batPath = "$env:TEMP\winget_run_$($app.Id).bat"
             $vbsPath = "$env:TEMP\winget_run_$($app.Id).vbs"
             
-            $fbArgs = "install --exact --id=$($app.Id) --silent --accept-package-agreements --accept-source-agreements"
+            $fbArgs = "install --exact --id=$($app.Id) --silent --disable-interactivity --accept-package-agreements --accept-source-agreements"
             if ($wArgs -match "--skip-dependencies") { 
                 $fbArgs += " --skip-dependencies" 
                 if ($app.Name -eq "TeamSpeak 3") { $fbArgs += ' --override "/S"' }
@@ -702,6 +722,23 @@ $btnInstall.Add_Click({
                 }
                 DoEvents
                 Start-Sleep -Milliseconds 100
+            }
+            
+            # Final drain of any remaining text written just before completion
+            if (Test-Path $tmpOut) {
+                try {
+                    $fs = New-Object System.IO.FileStream($tmpOut, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
+                    $sr = New-Object System.IO.StreamReader($fs)
+                    $sr.BaseStream.Seek($lastSize, [System.IO.SeekOrigin]::Begin) | Out-Null
+                    $remText = $sr.ReadToEnd()
+                    $sr.Close()
+                    if ($remText) {
+                        $TxtLog.AppendText($remText)
+                        $appLog += $remText
+                        $TxtLog.ScrollToEnd()
+                        try { [Console]::Write($remText) } catch {}
+                    }
+                } catch {}
             }
             
             if (Test-Path $tmpDone) {
@@ -775,10 +812,10 @@ $btnInstall.Add_Click({
         switch ($true) {
             { $res.Cancelled }       { $desc = "Skipped - you hit the brakes!" }
             { $isUpdated }           { 
-                if ($code -eq 3010) { $desc = "Приложение обновлено (требуется перезагрузка)" }
-                else { $desc = "Приложение обновлено" }
+                if ($code -eq 3010) { $desc = "Updated (Reboot required)" }
+                else { $desc = "Successfully updated" }
             }
-            { $isInstalledNoUpdate } { $desc = "Приложение уже установлено" }
+            { $isInstalledNoUpdate } { $desc = "Already installed (Up to date)" }
             { $code -eq 1618 }       { $desc = "Busy! Another installation is running (Code 1618)" }
             { $code -in 1602, -2147023673, 2147943623 } { $desc = "Halted! Check logs (Cancelled or UAC denied)" }
             { $code -eq 1603 }       { $desc = "Fatal crash! Check the logs for clues (Code 1603)" }
