@@ -46,3 +46,4 @@ $global:apps = @(
 )
 
 $global:cats = @("Browsers", "Development", "Gaming / Social", "Media", "Utilities", "System", "Productivity")
+

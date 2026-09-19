@@ -603,3 +603,4 @@ function Start-AppsInstallation($toInstall, $winControls) {
     $BtnCancelInstall.Content = "Close"
     $BtnCancelInstall.IsEnabled = $true
 }
+

@@ -197,7 +197,7 @@ function Initialize-UIController($winControls) {
         [Dwm]::DwmSetWindowAttribute($hwnd, 1029, [ref]$micaFallback, 4) | Out-Null
 
         $hwndSource = [System.Windows.Interop.HwndSource]::FromHwnd($hwnd)
-        if ($hwndSource -ne $null) {
+        if ($null -ne $hwndSource) {
             $hwndSource.CompositionTarget.BackgroundColor = [System.Windows.Media.Colors]::Transparent
         }
     })
@@ -207,3 +207,4 @@ function Initialize-UIController($winControls) {
         Unregister-ThemeListener
     })
 }
+
