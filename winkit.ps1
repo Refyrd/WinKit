@@ -1,4 +1,5 @@
 ﻿param([switch]$Elevated)
+$null = $Elevated
 
 # Auto-elevate and enforce STA if run directly
 $global:isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
@@ -9,7 +10,7 @@ if (-not $global:isAdmin -or -not $isSTA) {
         $argList = "-Sta -ExecutionPolicy Bypass -NoProfile -File `"$PSCommandPath`""
         try {
             Start-Process powershell.exe -ArgumentList $argList -Verb RunAs -Wait
-        } catch { }
+        } catch { $null = $_ }
         exit
     }
 }

@@ -10,20 +10,21 @@ function DoEvents {
 }
 
 function Initialize-UIController($winControls) {
-    $win = $winControls.Win
-    $tabCats = $winControls.TabCats
-    $btnSelectAll = $winControls.BtnSelectAll
-    $btnClearAll = $winControls.BtnClearAll
-    $btnSave = $winControls.BtnSave
-    $btnLoad = $winControls.BtnLoad
-    $btnInstall = $winControls.BtnInstall
-    $btnCancelInstall = $winControls.BtnCancelInstall
-    $btnTheme = $winControls.BtnTheme
-    $btnDebug = $winControls.BtnDebug
-    $ProgressOverlay = $winControls.ProgressOverlay
-    $TxtLog = $winControls.TxtLog
-    $SummaryScroll = $winControls.SummaryScroll
-    $SummaryPanel = $winControls.SummaryPanel
+    $script:winControls = $winControls
+    $script:win = $winControls.Win
+    $script:tabCats = $winControls.TabCats
+    $script:btnSelectAll = $winControls.BtnSelectAll
+    $script:btnClearAll = $winControls.BtnClearAll
+    $script:btnSave = $winControls.BtnSave
+    $script:btnLoad = $winControls.BtnLoad
+    $script:btnInstall = $winControls.BtnInstall
+    $script:btnCancelInstall = $winControls.BtnCancelInstall
+    $script:btnTheme = $winControls.BtnTheme
+    $script:btnDebug = $winControls.BtnDebug
+    $script:ProgressOverlay = $winControls.ProgressOverlay
+    $script:TxtLog = $winControls.TxtLog
+    $script:SummaryScroll = $winControls.SummaryScroll
+    $script:SummaryPanel = $winControls.SummaryPanel
 
     $script:isConsoleVisible = $false
     $script:checkBoxes = @()
@@ -75,18 +76,18 @@ function Initialize-UIController($winControls) {
         
         $scroll.Content = $wrap
         $tabItem.Content = $scroll
-        $tabCats.Items.Add($tabItem) | Out-Null
+        $script:tabCats.Items.Add($tabItem) | Out-Null
     }
 
     # Theme toggle handler
-    $btnTheme.Add_Click({
+    $script:btnTheme.Add_Click({
         $global:isDark = -not $global:isDark
         if ($global:isDark) { Set-Theme $global:darkPalette } else { Set-Theme $global:lightPalette }
         Update-AppTheme -fromManualClick $true
     })
 
     # Debug console toggle handler
-    $btnDebug.Add_Click({
+    $script:btnDebug.Add_Click({
         if ($script:isConsoleVisible) {
             [Console.Window]::ShowWindow([Console.Window]::GetConsoleWindow(), 0) | Out-Null
             $script:isConsoleVisible = $false
@@ -97,15 +98,15 @@ function Initialize-UIController($winControls) {
     })
 
     # Preset handlers
-    $btnSelectAll.Add_Click({
+    $script:btnSelectAll.Add_Click({
         foreach ($chk in $script:checkBoxes) { $chk.IsChecked = $true }
     })
 
-    $btnClearAll.Add_Click({
+    $script:btnClearAll.Add_Click({
         foreach ($chk in $script:checkBoxes) { $chk.IsChecked = $false }
     })
 
-    $btnSave.Add_Click({
+    $script:btnSave.Add_Click({
         $sel = @()
         foreach ($chk in $script:checkBoxes) {
             if ($chk.IsChecked -eq $true) { $sel += $chk.Uid }
@@ -114,7 +115,7 @@ function Initialize-UIController($winControls) {
         [System.Windows.MessageBox]::Show("Preset saved to Documents\winkit-preset.txt!", "Success", 0, 64)
     })
 
-    $btnLoad.Add_Click({
+    $script:btnLoad.Add_Click({
         $path = "$env:USERPROFILE\Documents\winkit-preset.txt"
         if (Test-Path $path) {
             $lines = Get-Content $path
@@ -124,20 +125,21 @@ function Initialize-UIController($winControls) {
         }
     })
 
-    # Install cancel handler
+    # Install cancel / close handler
     $global:cancelInstall = $false
-    $btnCancelInstall.Add_Click({
-        if ($global:cancelInstall) {
-            $ProgressOverlay.Visibility = "Collapsed"
+    $global:isInstallFinished = $false
+    $script:btnCancelInstall.Add_Click({
+        if ($this.Content -eq "Close" -or $global:isInstallFinished) {
+            $script:ProgressOverlay.Visibility = "Collapsed"
         } else {
             $global:cancelInstall = $true
-            $btnCancelInstall.Content = "Cancelling..."
-            $btnCancelInstall.IsEnabled = $false
+            $this.Content = "Cancelling..."
+            $this.IsEnabled = $false
         }
     })
 
     # Install button handler
-    $btnInstall.Add_Click({
+    $script:btnInstall.Add_Click({
         $toInstall = @()
         foreach ($chk in $script:checkBoxes) {
             if ($chk.IsChecked -eq $true) {
@@ -154,30 +156,31 @@ function Initialize-UIController($winControls) {
         if ($toInstall.Count -eq 0) { return }
         Write-Host "Install button clicked. Selected apps: $($toInstall.Count)" -ForegroundColor Cyan
 
-        $ProgressOverlay.Visibility = "Visible"
-        $TxtLog.Visibility = "Visible"
-        $SummaryScroll.Visibility = "Collapsed"
-        $SummaryPanel.Children.Clear()
+        $script:ProgressOverlay.Visibility = "Visible"
+        $script:TxtLog.Visibility = "Visible"
+        $script:SummaryScroll.Visibility = "Collapsed"
+        $script:SummaryPanel.Children.Clear()
         
         if (-not $global:isDark) {
-            $TxtLog.Background = $global:brushConverter.ConvertFromString("#F0F0F0")
-            $TxtLog.Foreground = $global:brushConverter.ConvertFromString("#111111")
+            $script:TxtLog.Background = $global:brushConverter.ConvertFromString("#F0F0F0")
+            $script:TxtLog.Foreground = $global:brushConverter.ConvertFromString("#111111")
         } else {
-            $TxtLog.Background = $global:brushConverter.ConvertFromString("#1E1E1E")
-            $TxtLog.Foreground = $global:brushConverter.ConvertFromString("#CCCCCC")
+            $script:TxtLog.Background = $global:brushConverter.ConvertFromString("#1E1E1E")
+            $script:TxtLog.Foreground = $global:brushConverter.ConvertFromString("#CCCCCC")
         }
         
         $global:cancelInstall = $false
-        $TxtLog.Text = ""
-        $btnCancelInstall.Content = "Cancel"
-        $btnCancelInstall.IsEnabled = $true
+        $script:TxtLog.Text = ""
+        $script:btnCancelInstall.Content = "Cancel"
+        $script:btnCancelInstall.IsEnabled = $true
+        DoEvents
 
-        Start-AppsInstallation $toInstall $winControls
+        Start-AppsInstallation $toInstall $script:winControls
     })
 
     # Window DWM & Backdrop initialization
-    $win.Add_SourceInitialized({
-        $helper = New-Object System.Windows.Interop.WindowInteropHelper($win)
+    $script:win.Add_SourceInitialized({
+        $helper = New-Object System.Windows.Interop.WindowInteropHelper($script:win)
         $hwnd = $helper.Handle
         
         $margins = New-Object Dwm+MARGINS
@@ -203,8 +206,7 @@ function Initialize-UIController($winControls) {
     })
 
     # Window cleanup
-    $win.Add_Closed({
+    $script:win.Add_Closed({
         Unregister-ThemeListener
     })
 }
-

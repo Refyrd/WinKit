@@ -103,16 +103,16 @@ function Update-AppTheme($fromManualClick = $false) {
                 $hex = "#{0:X6}" -f ($c -band 0xFFFFFF)
                 $hoverHex = $hex
                 $pressedHex = $hex
-            } catch {}
+            } catch { $null = $_ }
         }
-        
+
         $global:win.Resources["PrimaryClr"] = $global:brushConverter.ConvertFromString($hex)
         $global:win.Resources["PrimaryHoverClr"] = $global:brushConverter.ConvertFromString($hoverHex)
         $global:win.Resources["PrimaryPressedClr"] = $global:brushConverter.ConvertFromString($pressedHex)
         $global:win.Resources["ChkHoverBorder"] = $global:brushConverter.ConvertFromString($hex)
         $textHex = if ($global:isDark) { "#000000" } else { "#FFFFFF" }
         $global:win.Resources["PrimaryBtnTextClr"] = $global:brushConverter.ConvertFromString($textHex)
-        
+
         $helper = New-Object System.Windows.Interop.WindowInteropHelper($global:win)
         $val = if ($global:isDark) { 1 } else { 0 }
         [Dwm]::DwmSetWindowAttribute($helper.Handle, 20, [ref]$val, 4) | Out-Null
@@ -123,6 +123,7 @@ function Update-AppTheme($fromManualClick = $false) {
 function Register-ThemeListener {
     $global:ThemeChangedHandler = [Microsoft.Win32.UserPreferenceChangedEventHandler] {
         param($s, $e)
+        $null = $s; $null = $e
         if ($global:win.Dispatcher.CheckAccess()) {
             Update-AppTheme
         } else {
