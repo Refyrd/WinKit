@@ -751,26 +751,42 @@ $btnInstall.Add_Click({
     $global:allLogControls = @()
 
     foreach ($res in $installResults) {
-        $color = "#28A745"
         $code = $res.Code
         $logStr = $res.Log
         
-        $isUpToDate = ($code -eq -1978335220 -or $code -eq 2316632076 -or $code -eq -1978335189 -or $code -eq 2316632107 -or ($logStr -match "No newer package versions" -or $logStr -match "No available upgrade found"))
+        # 1. Already installed (no updates needed)
+        $alreadyInstalledCodes = @(-1978335220, 2316632076, -1978335189, 2316632107, -1978335187, 2316632109, -1978335190, 2316632106)
+        $alreadyInstalledRegex = "(?i)(No (?:newer|available|applicable) (?:package|upgrade|update)|найден.*установленный пакет.*не найдено|не найдено.*обновлен|не найдено.*верси|уже установлен|установлена последняя версия|already installed.*no (?:newer|available|upgrade))"
+        $isInstalledNoUpdate = ($code -in $alreadyInstalledCodes -or ($logStr -match $alreadyInstalledRegex -and -not ($logStr -match "(?i)(Successfully installed|Успешно установлен)")))
+
+        # 2. Updated / Upgraded
+        $isUpgradeAttempt = ($logStr -match "(?i)(Trying to upgrade|попытка обновить|Upgrading|Обновление пакета)")
+        $isSuccess = ($code -eq 0 -or $code -eq 3010 -or $code -eq 1641 -or ($logStr -match "(?i)(Successfully installed|Успешно установлен)"))
+        $isUpdated = ($isUpgradeAttempt -and $isSuccess -and -not $isInstalledNoUpdate)
         
         switch ($true) {
-            { $res.Cancelled } { $color = "#FFC107" }
-            { $code -ne 0 -and -not $isUpToDate } { $color = "#DC3545" }
-            default { $color = "#28A745" }
+            { $res.Cancelled }       { $color = "#FFC107" } # Amber
+            { $isUpdated }           { $color = "#E5A93C" } # Neutral Yellow / Warm Amber
+            { $isInstalledNoUpdate } { $color = "#17A2B8" } # Info Blue / Cyan
+            { $isSuccess }           { $color = "#28A745" } # Green
+            default                  { $color = "#DC3545" } # Red
         }
         
         switch ($true) {
-            { $res.Cancelled } { $desc = "Skipped - you hit the brakes!" }
-            { $isUpToDate } { $desc = "Already up to date (Nothing to do here)" }
-            { $code -eq 1618 } { $desc = "Busy! Another installation is running (Code 1618)" }
+            { $res.Cancelled }       { $desc = "Skipped - you hit the brakes!" }
+            { $isUpdated }           { 
+                if ($code -eq 3010) { $desc = "Приложение обновлено (требуется перезагрузка)" }
+                else { $desc = "Приложение обновлено" }
+            }
+            { $isInstalledNoUpdate } { $desc = "Приложение уже установлено" }
+            { $code -eq 1618 }       { $desc = "Busy! Another installation is running (Code 1618)" }
             { $code -in 1602, -2147023673, 2147943623 } { $desc = "Halted! Check logs (Cancelled or UAC denied)" }
-            { $code -eq 1603 } { $desc = "Fatal crash! Check the logs for clues (Code 1603)" }
-            { $code -ne 0 } { $desc = "Oops, something broke! Check logs (Code: $code)" }
-            default { $desc = "Successfully installed" }
+            { $code -eq 1603 }       { $desc = "Fatal crash! Check the logs for clues (Code 1603)" }
+            { $isSuccess }           { 
+                if ($code -eq 3010) { $desc = "Successfully installed (Reboot required)" }
+                else { $desc = "Successfully installed" }
+            }
+            default                  { $desc = "Oops, something broke! Check logs (Code: $code)" }
         }
 
         $bdr = New-Object System.Windows.Controls.Border
@@ -824,13 +840,15 @@ $btnInstall.Add_Click({
             $logBdr.Child = $tLog
 
             $btnLog = New-Object System.Windows.Controls.Button
-            $btnLog.Content = "Log"
-            $btnLog.Width = 40
+            $btnLog.Content = "Show Log"
+            $btnLog.HorizontalAlignment = [System.Windows.HorizontalAlignment]::Left
+            $btnLog.Padding = New-Object System.Windows.Thickness(8, 2, 8, 2)
             $btnLog.Height = 25
             $btnLog.Background = $brushConverter.ConvertFromString("Transparent")
             $btnLog.Foreground = [System.Windows.Media.SolidColorBrush]$win.Resources["PrimaryClr"]
             $btnLog.BorderThickness = 0
             $btnLog.Cursor = [System.Windows.Input.Cursors]::Hand
+            $btnLog.Margin = "0,4,0,0"
             
             $btnLog.Tag = @($logBdr, $tLog)
             $global:allLogControls += $btnLog
