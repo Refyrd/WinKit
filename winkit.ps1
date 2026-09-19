@@ -1,4 +1,4 @@
-param([switch]$Elevated)
+﻿param([switch]$Elevated)
 
 # Auto-elevate and enforce STA if run directly
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
