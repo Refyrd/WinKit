@@ -621,17 +621,12 @@ $btnInstall.Add_Click({
 
         $proc = New-Object System.Diagnostics.Process
         $proc.StartInfo.FileName = "winget"
-        $wArgs = "install --exact --id=$($app.Id) --silent --disable-interactivity --accept-package-agreements --accept-source-agreements"
+        $wArgs = "install --exact --id=$($app.Id) --source=winget --silent --disable-interactivity --accept-package-agreements --accept-source-agreements"
         
         if ($app.Dep -and $global:depCheckBoxes.ContainsKey($app.Name)) {
             $depChk = $global:depCheckBoxes[$app.Name]
             if (-not $depChk.IsChecked) { 
                 $wArgs += " --skip-dependencies"
-                
-                # For TeamSpeak 3, explicitly override arguments to prevent Overwolf from installing at all
-                if ($app.Name -eq "TeamSpeak 3") {
-                    $wArgs += ' --override "/S"'
-                }
             }
         }
         
@@ -708,10 +703,9 @@ $btnInstall.Add_Click({
             $batPath = "$env:TEMP\winget_run_$($app.Id).bat"
             $vbsPath = "$env:TEMP\winget_run_$($app.Id).vbs"
             
-            $fbArgs = "install --exact --id=$($app.Id) --silent --disable-interactivity --accept-package-agreements --accept-source-agreements"
+            $fbArgs = "install --exact --id=$($app.Id) --source=winget --silent --disable-interactivity --accept-package-agreements --accept-source-agreements"
             if ($wArgs -match "--skip-dependencies") { 
                 $fbArgs += " --skip-dependencies" 
-                if ($app.Name -eq "TeamSpeak 3") { $fbArgs += ' --override "/S"' }
             }
             $batCmd = "@echo off`nwinget $fbArgs > `"$tmpOut`" 2>&1`necho %ERRORLEVEL% > `"$tmpDone`""
             Set-Content -Path $batPath -Value $batCmd -Encoding ASCII
