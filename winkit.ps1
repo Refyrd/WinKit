@@ -21,6 +21,24 @@ Write-Host "WinKit GUI Initialization..." -ForegroundColor Cyan
 Add-Type -Name Window -Namespace Console -MemberDefinition '[DllImport("Kernel32.dll")]public static extern IntPtr GetConsoleWindow();[DllImport("user32.dll")]public static extern bool ShowWindow(IntPtr hWnd, Int32 nCmdShow);' -ErrorAction Ignore
 [Console.Window]::ShowWindow([Console.Window]::GetConsoleWindow(), 0) | Out-Null
 
+Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+public class Dwm {
+    [StructLayout(LayoutKind.Sequential)]
+    public struct MARGINS {
+        public int cxLeftWidth;
+        public int cxRightWidth;
+        public int cyTopHeight;
+        public int cyBottomHeight;
+    }
+    [DllImport("dwmapi.dll")]
+    public static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
+    [DllImport("dwmapi.dll")]
+    public static extern int DwmExtendFrameIntoClientArea(IntPtr hwnd, ref MARGINS margins);
+}
+"@ -ErrorAction Ignore
+
 # --- App definitions ---
 $apps = @(
     @{Name="Google Chrome";      Id="Google.Chrome";              Cat=0; Sel=$false},
@@ -369,14 +387,16 @@ function Set-Theme($palette) {
     }
 }
 
-function Update-AppTheme {
+function Update-AppTheme($fromManualClick = $false) {
     $win.Dispatcher.Invoke({
-        # 1. Update Dark/Light Mode
-        $regKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize"
-        $isLightReg = (Get-ItemProperty -Path $regKey -Name AppsUseLightTheme -ErrorAction SilentlyContinue).AppsUseLightTheme -eq 1
-        
-        if ($isLightReg) { Set-Theme $lightPalette; $script:isDark = $false }
-        else { Set-Theme $darkPalette; $script:isDark = $true }
+        # 1. Update Dark/Light Mode (only from registry if NOT manually triggered by user)
+        if (-not $fromManualClick) {
+            $regKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize"
+            $isLightReg = (Get-ItemProperty -Path $regKey -Name AppsUseLightTheme -ErrorAction SilentlyContinue).AppsUseLightTheme -eq 1
+            
+            if ($isLightReg) { Set-Theme $lightPalette; $script:isDark = $false }
+            else { Set-Theme $darkPalette; $script:isDark = $true }
+        }
 
         # 2. Update Accent Color (Adaptive for Dark/Light mode)
         $hex = "#55C5FF"
@@ -417,6 +437,7 @@ function Update-AppTheme {
         $win.Resources["PrimaryClr"] = $brushConverter.ConvertFromString($hex)
         $win.Resources["PrimaryHoverClr"] = $brushConverter.ConvertFromString($hoverHex)
         $win.Resources["PrimaryPressedClr"] = $brushConverter.ConvertFromString($pressedHex)
+        $win.Resources["ChkHoverBorder"] = $brushConverter.ConvertFromString($hex)
         $textHex = if ($script:isDark) { "#000000" } else { "#FFFFFF" }
         $win.Resources["PrimaryBtnTextClr"] = $brushConverter.ConvertFromString($textHex)
         
@@ -449,8 +470,8 @@ $btnTheme.Add_Click({
     $script:isDark = -not $script:isDark
     if ($script:isDark) { Set-Theme $darkPalette } else { Set-Theme $lightPalette }
     
-    # Refresh accent & button colors for new mode
-    Update-AppTheme
+    # Refresh accent & button colors for new mode while preserving manual toggle
+    Update-AppTheme -fromManualClick $true
 })
 
 $script:isConsoleVisible = $false
@@ -929,24 +950,6 @@ $BtnCancelInstall.Add_Click({
         $BtnCancelInstall.IsEnabled = $false
     }
 })
-
-Add-Type -TypeDefinition @"
-using System;
-using System.Runtime.InteropServices;
-public class Dwm {
-    [StructLayout(LayoutKind.Sequential)]
-    public struct MARGINS {
-        public int cxLeftWidth;
-        public int cxRightWidth;
-        public int cyTopHeight;
-        public int cyBottomHeight;
-    }
-    [DllImport("dwmapi.dll")]
-    public static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
-    [DllImport("dwmapi.dll")]
-    public static extern int DwmExtendFrameIntoClientArea(IntPtr hwnd, ref MARGINS margins);
-}
-"@ -ErrorAction Ignore
 
 $win.Add_SourceInitialized({
     $helper = New-Object System.Windows.Interop.WindowInteropHelper($win)
