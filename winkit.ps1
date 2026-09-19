@@ -646,6 +646,15 @@ $btnInstall.Add_Click({
             Write-Host "Started winget process for $($app.Name)..." -ForegroundColor Cyan
             
             $lineBuffer = ""
+            $dlStartTime = [DateTime]::UtcNow
+            $dlTotalBytes = 0
+            $dlUrl = $null
+            $isDownloading = $false
+            $lastProgUpdate = [DateTime]::MinValue
+            $progressAppended = $false
+            $lastProgText = ""
+            $progressStartPos = 0
+            $global:currentDlTotalBytes = 0
     
             while (-not $proc.HasExited) {
                 if ($global:cancelInstall) {
@@ -662,12 +671,112 @@ $btnInstall.Add_Click({
                         if ($lineBuffer -match "(\d+(?:\.\d+)?\s*[KMG]B\s*/\s*\d+(?:\.\d+)?\s*[KMG]B|\d+\s*%)") {
                             $LblProgress.Text = "Installing ($count / $($toInstall.Count)): $($app.Name) - $($matches[1])"
                         }
+                        if ($lineBuffer -match "(?i)Downloading\s+(https?://[^\s]+)") {
+                            $dlUrl = $matches[1]
+                            $isDownloading = $true
+                            $dlStartTime = [DateTime]::UtcNow
+                            $dlTotalBytes = 0
+                            $progressAppended = $false
+                            $lastProgText = ""
+                            $global:currentDlTotalBytes = 0
+                            [System.Threading.ThreadPool]::QueueUserWorkItem({
+                                param($u)
+                                try {
+                                    $req = [System.Net.HttpWebRequest]::Create($u)
+                                    $req.Method = "HEAD"
+                                    $req.Timeout = 2500
+                                    $resp = $req.GetResponse()
+                                    $global:currentDlTotalBytes = $resp.ContentLength
+                                    $resp.Close()
+                                } catch {}
+                            }, $dlUrl) | Out-Null
+                        }
+                        if ($lineBuffer -match "(?i)(Successfully verified|Starting package install|Успешно проверен|Установка пакета)") {
+                            if ($isDownloading -and $progressAppended) {
+                                $TxtLog.AppendText("`n")
+                                $TxtLog.ScrollToEnd()
+                            }
+                            $isDownloading = $false
+                            $PbInstall.IsIndeterminate = $true
+                            $LblProgress.Text = "Installing ($count / $($toInstall.Count)): $($app.Name)"
+                        }
                         $lineBuffer = ""
                     } else {
                         $lineBuffer += $char
                     }
                     
                     $TxtLog.ScrollToEnd()
+                }
+
+                if ($isDownloading) {
+                    if (-not $dlTotalBytes -and $global:currentDlTotalBytes -gt 0) {
+                        $dlTotalBytes = $global:currentDlTotalBytes
+                    }
+                    $now = [DateTime]::UtcNow
+                    if (($now - $lastProgUpdate).TotalMilliseconds -ge 200) {
+                        $lastProgUpdate = $now
+                        $currBytes = 0
+                        try {
+                            $do = Get-DeliveryOptimizationStatus -ErrorAction SilentlyContinue | Where-Object { 
+                                $_.PredefinedCallerApplication -eq "Windows Package Manager" -or 
+                                ($dlUrl -and $_.SourceURL -eq $dlUrl)
+                            } | Select-Object -First 1
+                            if ($do -and $do.TotalBytesDownloaded -gt 0) {
+                                $currBytes = $do.TotalBytesDownloaded
+                                if (-not $dlTotalBytes -and $do.FileSize -gt 0) { $dlTotalBytes = $do.FileSize }
+                            }
+                        } catch {}
+                        
+                        if ($currBytes -le 0) {
+                            try {
+                                $tFiles = Get-ChildItem -Path "$env:TEMP\WinGet", "$env:LOCALAPPDATA\Temp\WinGet" -Recurse -File -ErrorAction SilentlyContinue |
+                                    Where-Object { $_.DirectoryName -like "*$($app.Id)*" -and $_.LastWriteTimeUtc -ge $dlStartTime.AddSeconds(-2) }
+                                if ($tFiles) {
+                                    $currBytes = ($tFiles | Measure-Object -Property Length -Sum).Sum
+                                }
+                            } catch {}
+                        }
+                        
+                        if ($currBytes -gt 0 -or $dlTotalBytes -gt 0) {
+                            $currMB = [Math]::Round($currBytes / 1MB, 1)
+                            if ($dlTotalBytes -gt 0) {
+                                $totMB = [Math]::Round($dlTotalBytes / 1MB, 1)
+                                $pct = [Math]::Min(100, [Math]::Max(0, [Math]::Round(($currBytes / $dlTotalBytes) * 100)))
+                                $progStr = "$currMB MB / $totMB MB ($pct%)"
+                                $PbInstall.IsIndeterminate = $false
+                                $PbInstall.Value = $pct
+                            } else {
+                                $progStr = "$currMB MB"
+                            }
+                            
+                            $LblProgress.Text = "Installing ($count / $($toInstall.Count)): $($app.Name) - $progStr"
+                            
+                            if ($progStr -ne $lastProgText) {
+                                $lastProgText = $progStr
+                                $barLen = 20
+                                if ($dlTotalBytes -gt 0) {
+                                    $f = [Math]::Floor(($pct / 100) * $barLen)
+                                    $e = $barLen - $f
+                                    $bar = ("█" * $f) + ("░" * $e)
+                                    $pLine = "  $bar  $progStr"
+                                } else {
+                                    $pLine = "  Downloading: $progStr"
+                                }
+                                
+                                if (-not $progressAppended) {
+                                    $progressStartPos = $TxtLog.Text.Length
+                                    $TxtLog.AppendText("`n" + $pLine)
+                                    $progressAppended = $true
+                                } else {
+                                    $curTxt = $TxtLog.Text
+                                    if ($curTxt.Length -ge $progressStartPos) {
+                                        $TxtLog.Text = $curTxt.Substring(0, $progressStartPos) + "`n" + $pLine
+                                    }
+                                }
+                                $TxtLog.ScrollToEnd()
+                            }
+                        }
+                    }
                 }
                 DoEvents
                 Start-Sleep -Milliseconds 20
@@ -715,6 +824,15 @@ $btnInstall.Add_Click({
             
             Start-Process "explorer.exe" -ArgumentList "`"$vbsPath`""
             
+            $fbDlStartTime = [DateTime]::UtcNow
+            $fbDlTotalBytes = 0
+            $fbDlUrl = $null
+            $fbIsDownloading = $false
+            $fbLastProgUpdate = [DateTime]::MinValue
+            $fbProgressAppended = $false
+            $fbLastProgText = ""
+            $fbProgressStartPos = 0
+            $global:fbCurrentDlTotalBytes = 0
             $lastSize = 0
             while (-not (Test-Path $tmpDone)) {
                 if ($global:cancelInstall) { break }
@@ -732,8 +850,109 @@ $btnInstall.Add_Click({
                             $appLog += $newText
                             $TxtLog.ScrollToEnd()
                             try { [Console]::Write($newText) } catch {}
+
+                            if ($newText -match "(?i)Downloading\s+(https?://[^\s]+)") {
+                                $fbDlUrl = $matches[1]
+                                $fbIsDownloading = $true
+                                $fbDlStartTime = [DateTime]::UtcNow
+                                $fbDlTotalBytes = 0
+                                $fbProgressAppended = $false
+                                $fbLastProgText = ""
+                                $global:fbCurrentDlTotalBytes = 0
+                                [System.Threading.ThreadPool]::QueueUserWorkItem({
+                                    param($u)
+                                    try {
+                                        $req = [System.Net.HttpWebRequest]::Create($u)
+                                        $req.Method = "HEAD"
+                                        $req.Timeout = 2500
+                                        $resp = $req.GetResponse()
+                                        $global:fbCurrentDlTotalBytes = $resp.ContentLength
+                                        $resp.Close()
+                                    } catch {}
+                                }, $fbDlUrl) | Out-Null
+                            }
+                            if ($newText -match "(?i)(Successfully verified|Starting package install|Успешно проверен|Установка пакета)") {
+                                if ($fbIsDownloading -and $fbProgressAppended) {
+                                    $TxtLog.AppendText("`n")
+                                    $TxtLog.ScrollToEnd()
+                                }
+                                $fbIsDownloading = $false
+                                $PbInstall.IsIndeterminate = $true
+                                $LblProgress.Text = "Installing ($count / $($toInstall.Count)): $($app.Name)"
+                            }
                         }
                     } catch {}
+                }
+
+                if ($fbIsDownloading) {
+                    if (-not $fbDlTotalBytes -and $global:fbCurrentDlTotalBytes -gt 0) {
+                        $fbDlTotalBytes = $global:fbCurrentDlTotalBytes
+                    }
+                    $now = [DateTime]::UtcNow
+                    if (($now - $fbLastProgUpdate).TotalMilliseconds -ge 200) {
+                        $fbLastProgUpdate = $now
+                        $currBytes = 0
+                        try {
+                            $do = Get-DeliveryOptimizationStatus -ErrorAction SilentlyContinue | Where-Object { 
+                                $_.PredefinedCallerApplication -eq "Windows Package Manager" -or 
+                                ($fbDlUrl -and $_.SourceURL -eq $fbDlUrl)
+                            } | Select-Object -First 1
+                            if ($do -and $do.TotalBytesDownloaded -gt 0) {
+                                $currBytes = $do.TotalBytesDownloaded
+                                if (-not $fbDlTotalBytes -and $do.FileSize -gt 0) { $fbDlTotalBytes = $do.FileSize }
+                            }
+                        } catch {}
+                        
+                        if ($currBytes -le 0) {
+                            try {
+                                $tFiles = Get-ChildItem -Path "$env:TEMP\WinGet", "$env:LOCALAPPDATA\Temp\WinGet" -Recurse -File -ErrorAction SilentlyContinue |
+                                    Where-Object { $_.DirectoryName -like "*$($app.Id)*" -and $_.LastWriteTimeUtc -ge $fbDlStartTime.AddSeconds(-2) }
+                                if ($tFiles) {
+                                    $currBytes = ($tFiles | Measure-Object -Property Length -Sum).Sum
+                                }
+                            } catch {}
+                        }
+                        
+                        if ($currBytes -gt 0 -or $fbDlTotalBytes -gt 0) {
+                            $currMB = [Math]::Round($currBytes / 1MB, 1)
+                            if ($fbDlTotalBytes -gt 0) {
+                                $totMB = [Math]::Round($fbDlTotalBytes / 1MB, 1)
+                                $pct = [Math]::Min(100, [Math]::Max(0, [Math]::Round(($currBytes / $fbDlTotalBytes) * 100)))
+                                $progStr = "$currMB MB / $totMB MB ($pct%)"
+                                $PbInstall.IsIndeterminate = $false
+                                $PbInstall.Value = $pct
+                            } else {
+                                $progStr = "$currMB MB"
+                            }
+                            
+                            $LblProgress.Text = "Installing ($count / $($toInstall.Count)): $($app.Name) - $progStr"
+                            
+                            if ($progStr -ne $fbLastProgText) {
+                                $fbLastProgText = $progStr
+                                $barLen = 20
+                                if ($fbDlTotalBytes -gt 0) {
+                                    $f = [Math]::Floor(($pct / 100) * $barLen)
+                                    $e = $barLen - $f
+                                    $bar = ("█" * $f) + ("░" * $e)
+                                    $pLine = "  $bar  $progStr"
+                                } else {
+                                    $pLine = "  Downloading: $progStr"
+                                }
+                                
+                                if (-not $fbProgressAppended) {
+                                    $fbProgressStartPos = $TxtLog.Text.Length
+                                    $TxtLog.AppendText("`n" + $pLine)
+                                    $fbProgressAppended = $true
+                                } else {
+                                    $curTxt = $TxtLog.Text
+                                    if ($curTxt.Length -ge $fbProgressStartPos) {
+                                        $TxtLog.Text = $curTxt.Substring(0, $fbProgressStartPos) + "`n" + $pLine
+                                    }
+                                }
+                                $TxtLog.ScrollToEnd()
+                            }
+                        }
+                    }
                 }
                 DoEvents
                 Start-Sleep -Milliseconds 100
