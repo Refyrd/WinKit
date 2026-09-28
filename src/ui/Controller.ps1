@@ -25,9 +25,14 @@ function Initialize-UIController($winControls) {
     $script:TxtLog = $winControls.TxtLog
     $script:SummaryScroll = $winControls.SummaryScroll
     $script:SummaryPanel = $winControls.SummaryPanel
+    $script:txtSearch = $winControls.TxtSearch
+    $script:txtSearchPlaceholder = $winControls.TxtSearchPlaceholder
+    $script:btnClearSearch = $winControls.BtnClearSearch
+    $script:btnExportLog = $winControls.BtnExportLog
 
     $script:isConsoleVisible = $false
     $script:checkBoxes = @()
+    $script:appPanels = @()
     $global:depCheckBoxes = @{}
 
     # Populate categories and apps
@@ -46,6 +51,7 @@ function Initialize-UIController($winControls) {
             $panel.Orientation = "Vertical"
             $panel.Width = 220
             $panel.Margin = "0,0,0,5"
+            $panel.Tag = @{ App = $app; CatIndex = $c }
             
             $chk = New-Object System.Windows.Controls.CheckBox
             $chk.Content = $app.Name
@@ -72,11 +78,52 @@ function Initialize-UIController($winControls) {
             }
             
             $wrap.Children.Add($panel) | Out-Null
+            $script:appPanels += $panel
         }
         
         $scroll.Content = $wrap
         $tabItem.Content = $scroll
         $script:tabCats.Items.Add($tabItem) | Out-Null
+    }
+
+    # Search filter handlers
+    if ($script:txtSearch) {
+        $script:txtSearch.Add_TextChanged({
+            $q = $script:txtSearch.Text.Trim()
+            if ($q) {
+                if ($script:txtSearchPlaceholder) { $script:txtSearchPlaceholder.Visibility = "Collapsed" }
+                if ($script:btnClearSearch) { $script:btnClearSearch.Visibility = "Visible" }
+            } else {
+                if ($script:txtSearchPlaceholder) { $script:txtSearchPlaceholder.Visibility = "Visible" }
+                if ($script:btnClearSearch) { $script:btnClearSearch.Visibility = "Collapsed" }
+            }
+
+            $firstMatchingTab = -1
+            $currentTabHasMatch = $false
+            $currTabIdx = $script:tabCats.SelectedIndex
+
+            foreach ($p in $script:appPanels) {
+                $app = $p.Tag.App
+                $catIdx = $p.Tag.CatIndex
+                if (-not $q -or ($app.Name -like "*$q*")) {
+                    $p.Visibility = "Visible"
+                    if ($catIdx -eq $currTabIdx) { $currentTabHasMatch = $true }
+                    if ($firstMatchingTab -eq -1) { $firstMatchingTab = $catIdx }
+                } else {
+                    $p.Visibility = "Collapsed"
+                }
+            }
+
+            if ($q -and -not $currentTabHasMatch -and $firstMatchingTab -ge 0) {
+                $script:tabCats.SelectedIndex = $firstMatchingTab
+            }
+        })
+    }
+
+    if ($script:btnClearSearch) {
+        $script:btnClearSearch.Add_Click({
+            $script:txtSearch.Text = ""
+        })
     }
 
     # Theme toggle handler
@@ -106,24 +153,87 @@ function Initialize-UIController($winControls) {
         foreach ($chk in $script:checkBoxes) { $chk.IsChecked = $false }
     })
 
+    # Preset save handler with path selection
     $script:btnSave.Add_Click({
         $sel = @()
         foreach ($chk in $script:checkBoxes) {
             if ($chk.IsChecked -eq $true) { $sel += $chk.Uid }
         }
-        $sel -join "`n" | Out-File -FilePath "$env:USERPROFILE\Documents\winkit-preset.txt" -Encoding utf8
-        [System.Windows.MessageBox]::Show("Preset saved to Documents\winkit-preset.txt!", "Success", 0, 64)
-    })
+        if ($sel.Count -eq 0) {
+            [System.Windows.MessageBox]::Show("No applications are selected to save.", "WinKit Preset", 0, 48)
+            return
+        }
 
-    $script:btnLoad.Add_Click({
-        $path = "$env:USERPROFILE\Documents\winkit-preset.txt"
-        if (Test-Path $path) {
-            $lines = Get-Content $path
-            foreach ($chk in $script:checkBoxes) {
-                $chk.IsChecked = $lines -contains $chk.Uid
+        $sfd = New-Object Microsoft.Win32.SaveFileDialog
+        $sfd.Title = "Save WinKit Preset"
+        $sfd.Filter = "WinKit Preset (*.txt)|*.txt|All Files (*.*)|*.*"
+        $sfd.FileName = "winkit-preset.txt"
+        $docs = [Environment]::GetFolderPath([Environment+SpecialFolder]::MyDocuments)
+        if ($docs -and (Test-Path $docs)) { $sfd.InitialDirectory = $docs }
+
+        if ($sfd.ShowDialog() -eq $true) {
+            try {
+                $sel -join "`n" | Out-File -FilePath $sfd.FileName -Encoding utf8
+                [System.Windows.MessageBox]::Show("Preset saved successfully to:`n$($sfd.FileName)", "Success", 0, 64)
+            } catch {
+                [System.Windows.MessageBox]::Show("Failed to save preset: $_", "Error", 0, 16)
             }
         }
     })
+
+    # Preset load handler with path selection
+    $script:btnLoad.Add_Click({
+        $ofd = New-Object Microsoft.Win32.OpenFileDialog
+        $ofd.Title = "Load WinKit Preset"
+        $ofd.Filter = "WinKit Preset (*.txt)|*.txt|All Files (*.*)|*.*"
+        $ofd.FileName = "winkit-preset.txt"
+        $docs = [Environment]::GetFolderPath([Environment+SpecialFolder]::MyDocuments)
+        if ($docs -and (Test-Path $docs)) { $ofd.InitialDirectory = $docs }
+
+        if ($ofd.ShowDialog() -eq $true) {
+            if (Test-Path $ofd.FileName) {
+                try {
+                    $lines = @(Get-Content $ofd.FileName | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+                    $matchedCount = 0
+                    foreach ($chk in $script:checkBoxes) {
+                        $isChecked = $lines -contains $chk.Uid
+                        $chk.IsChecked = $isChecked
+                        if ($isChecked) { $matchedCount++ }
+                    }
+                    [System.Windows.MessageBox]::Show("Loaded preset with $matchedCount selected application(s).", "WinKit", 0, 64)
+                } catch {
+                    [System.Windows.MessageBox]::Show("Failed to load preset: $_", "Error", 0, 16)
+                }
+            }
+        }
+    })
+
+    # Export Log handler
+    if ($script:btnExportLog) {
+        $script:btnExportLog.Add_Click({
+            $logContent = $script:TxtLog.Text
+            if (-not $logContent) {
+                [System.Windows.MessageBox]::Show("No installation log available to export.", "WinKit Export", 0, 48)
+                return
+            }
+
+            $sfd = New-Object Microsoft.Win32.SaveFileDialog
+            $sfd.Title = "Export Installation Log"
+            $sfd.Filter = "Log File (*.log)|*.log|Text File (*.txt)|*.txt|All Files (*.*)|*.*"
+            $sfd.FileName = "winkit-install-$(Get-Date -Format 'yyyyMMdd-HHmmss').log"
+            $docs = [Environment]::GetFolderPath([Environment+SpecialFolder]::MyDocuments)
+            if ($docs -and (Test-Path $docs)) { $sfd.InitialDirectory = $docs }
+
+            if ($sfd.ShowDialog() -eq $true) {
+                try {
+                    [System.IO.File]::WriteAllText($sfd.FileName, $logContent, [System.Text.UTF8Encoding]::new($false))
+                    [System.Windows.MessageBox]::Show("Log exported successfully to:`n$($sfd.FileName)", "WinKit", 0, 64)
+                } catch {
+                    [System.Windows.MessageBox]::Show("Failed to save log: $_", "Error", 0, 16)
+                }
+            }
+        })
+    }
 
     # Install cancel / close handler
     $global:cancelInstall = $false
@@ -131,6 +241,7 @@ function Initialize-UIController($winControls) {
     $script:btnCancelInstall.Add_Click({
         if ($this.Content -eq "Close" -or $global:isInstallFinished) {
             $script:ProgressOverlay.Visibility = "Collapsed"
+            $script:btnInstall.IsEnabled = $true
         } else {
             $global:cancelInstall = $true
             $this.Content = "Cancelling..."
@@ -154,6 +265,7 @@ function Initialize-UIController($winControls) {
         }
 
         if ($toInstall.Count -eq 0) { return }
+        $script:btnInstall.IsEnabled = $false
         Write-Host "Install button clicked. Selected apps: $($toInstall.Count)" -ForegroundColor Cyan
 
         $script:ProgressOverlay.Visibility = "Visible"
@@ -173,9 +285,14 @@ function Initialize-UIController($winControls) {
         $script:TxtLog.Text = ""
         $script:btnCancelInstall.Content = "Cancel"
         $script:btnCancelInstall.IsEnabled = $true
+        if ($script:btnExportLog) { $script:btnExportLog.Visibility = "Collapsed" }
         DoEvents
 
-        Start-AppsInstallation $toInstall $script:winControls
+        try {
+            Start-AppsInstallation $toInstall $script:winControls
+        } finally {
+            $script:btnInstall.IsEnabled = $true
+        }
     })
 
     # Window DWM & Backdrop initialization

@@ -1,4 +1,4 @@
-﻿# --- WinKit Installation Engine ---
+# --- WinKit Installation Engine ---
 
 function Start-AppsInstallation($toInstall, $winControls) {
     $TxtLog = $winControls.TxtLog
@@ -8,10 +8,12 @@ function Start-AppsInstallation($toInstall, $winControls) {
     $BtnCancelInstall = $winControls.BtnCancelInstall
     $SummaryScroll = $winControls.SummaryScroll
     $SummaryPanel = $winControls.SummaryPanel
+    $BtnExportLog = $winControls.BtnExportLog
 
     $global:isInstallFinished = $false
     $BtnCancelInstall.Content = "Cancel"
     $BtnCancelInstall.IsEnabled = $true
+    if ($BtnExportLog) { $BtnExportLog.Visibility = "Collapsed" }
     $LblProgressTitle.Text = "Installing Apps..."
     $PbInstall.IsIndeterminate = $true
     $PbInstall.Visibility = "Visible"
@@ -59,13 +61,13 @@ function Start-AppsInstallation($toInstall, $winControls) {
             if (Test-Path $batPath) { Remove-Item $batPath -Force -ErrorAction SilentlyContinue }
             if (Test-Path $vbsPath) { Remove-Item $vbsPath -Force -ErrorAction SilentlyContinue }
 
-            $batCmd = "@echo off`r`nwinget $wArgs > `"$tmpOut`" 2>&1`r`necho %ERRORLEVEL% > `"$tmpDone`""
-            [System.IO.File]::WriteAllText($batPath, $batCmd, [System.Text.Encoding]::ASCII)
+            $batCmd = "@echo off`r`nchcp 65001 > nul`r`nwinget $wArgs > `"$tmpOut`" 2>&1`r`necho %ERRORLEVEL% > `"$tmpDone`""
+            [System.IO.File]::WriteAllText($batPath, $batCmd, [System.Text.UTF8Encoding]::new($false))
 
             $procHandle = $null
             if ($asUserFallback) {
                 $vbsCmd = "Set WshShell = CreateObject(`"WScript.Shell`")`r`nWshShell.Run chr(34) & `"$batPath`" & Chr(34), 0`r`nSet WshShell = Nothing"
-                [System.IO.File]::WriteAllText($vbsPath, $vbsCmd, [System.Text.Encoding]::ASCII)
+                [System.IO.File]::WriteAllText($vbsPath, $vbsCmd, [System.Text.Encoding]::Default)
                 Start-Process "explorer.exe" -ArgumentList "`"$vbsPath`""
             } else {
                 $psi = New-Object System.Diagnostics.ProcessStartInfo
@@ -76,8 +78,6 @@ function Start-AppsInstallation($toInstall, $winControls) {
                 $procHandle = [System.Diagnostics.Process]::Start($psi)
             }
 
-            $fs = $null
-            $sr = $null
             $lastPos = 0
             $lastProgressUpdate = [DateTime]::MinValue
             $isDownloading = $false
@@ -98,6 +98,7 @@ function Start-AppsInstallation($toInstall, $winControls) {
                 }
 
                 if (Test-Path $tmpOut) {
+                    $fs = $null
                     try {
                         $fs = New-Object System.IO.FileStream($tmpOut, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
                         if ($fs.Length -gt $lastPos) {
@@ -106,7 +107,6 @@ function Start-AppsInstallation($toInstall, $winControls) {
                             $chunk = $sr.ReadToEnd()
                             $lastPos = $fs.Position
                             $sr.Close()
-                            $fs.Close()
 
                             if ($chunk) {
                                 $TxtLog.AppendText($chunk)
@@ -121,7 +121,13 @@ function Start-AppsInstallation($toInstall, $winControls) {
                                     $dlTotalBytes = 0
                                 }
 
-                                if ($chunk -match "(\d+(?:\.\d+)?\s*[KMG]B\s*/\s*\d+(?:\.\d+)?\s*[KMG]B|\d+\s*%)") {
+                                if ($chunk -match "(?i)(\d+(?:\.\d+)?)\s*([KMG]B)\s*/\s*(\d+(?:\.\d+)?)\s*([KMG]B)") {
+                                    $LblProgress.Text = "Installing ($count / $($toInstall.Count)): $($app.Name) - $($matches[0])"
+                                    $totVal = [double]$matches[3]
+                                    $totUnit = $matches[4].ToUpper()
+                                    $mult = switch ($totUnit) { "KB" { 1KB } "GB" { 1GB } default { 1MB } }
+                                    $dlTotalBytes = [long]($totVal * $mult)
+                                } elseif ($chunk -match "(\d+\s*%)") {
                                     $LblProgress.Text = "Installing ($count / $($toInstall.Count)): $($app.Name) - $($matches[1])"
                                 }
 
@@ -137,6 +143,9 @@ function Start-AppsInstallation($toInstall, $winControls) {
                             }
                         }
                     } catch { $null = $_ }
+                    finally {
+                        if ($null -ne $fs) { $fs.Dispose() }
+                    }
                 }
 
                 # Update progress bar if downloading (throttled to 250ms)
@@ -148,7 +157,7 @@ function Start-AppsInstallation($toInstall, $winControls) {
                         try {
                             $dlDirs = Get-ChildItem -Path "$env:TEMP\WinGet", "$env:LOCALAPPDATA\Temp\WinGet" -Filter "*$($app.Id)*" -Directory -ErrorAction SilentlyContinue
                             if ($dlDirs) {
-                                $dlFiles = Get-ChildItem -Path $dlDirs.FullName -File -ErrorAction SilentlyContinue
+                                $dlFiles = Get-ChildItem -Path $dlDirs.FullName -File -Recurse -ErrorAction SilentlyContinue
                                 if ($dlFiles) {
                                     $currBytes = ($dlFiles | Measure-Object -Property Length -Sum).Sum
                                 }
@@ -197,12 +206,12 @@ function Start-AppsInstallation($toInstall, $winControls) {
                 }
 
                 DoEvents
-                Start-Sleep -Milliseconds 40
-                Start-Sleep -Milliseconds 15
+                Start-Sleep -Milliseconds 50
             }
 
             # Drain any remaining bytes from the log file
             if (Test-Path $tmpOut) {
+                $fs = $null
                 try {
                     $fs = New-Object System.IO.FileStream($tmpOut, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
                     if ($fs.Length -gt $lastPos) {
@@ -217,8 +226,10 @@ function Start-AppsInstallation($toInstall, $winControls) {
                             try { [Console]::Write($remText) } catch { $null = $_ }
                         }
                     }
-                    $fs.Close()
                 } catch { $null = $_ }
+                finally {
+                    if ($null -ne $fs) { $fs.Dispose() }
+                }
             }
 
             $retCode = -1
@@ -467,4 +478,5 @@ function Start-AppsInstallation($toInstall, $winControls) {
     $global:isInstallFinished = $true
     $BtnCancelInstall.Content = "Close"
     $BtnCancelInstall.IsEnabled = $true
+    if ($BtnExportLog) { $BtnExportLog.Visibility = "Visible" }
 }

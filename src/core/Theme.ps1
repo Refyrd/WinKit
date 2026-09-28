@@ -116,9 +116,11 @@ function Update-AppTheme($fromManualClick = $false) {
         $global:win.Resources["PrimaryBtnTextClr"] = $global:brushConverter.ConvertFromString($textHex)
 
         $helper = New-Object System.Windows.Interop.WindowInteropHelper($global:win)
-        $val = if ($global:isDark) { 1 } else { 0 }
-        [Dwm]::DwmSetWindowAttribute($helper.Handle, 20, [ref]$val, 4) | Out-Null
-        [Dwm]::DwmSetWindowAttribute($helper.Handle, 19, [ref]$val, 4) | Out-Null
+        if ($helper.Handle -ne [IntPtr]::Zero) {
+            $val = if ($global:isDark) { 1 } else { 0 }
+            [Dwm]::DwmSetWindowAttribute($helper.Handle, 20, [ref]$val, 4) | Out-Null
+            [Dwm]::DwmSetWindowAttribute($helper.Handle, 19, [ref]$val, 4) | Out-Null
+        }
     })
 }
 
@@ -126,11 +128,15 @@ function Register-ThemeListener {
     $global:ThemeChangedHandler = [Microsoft.Win32.UserPreferenceChangedEventHandler] {
         param($s, $e)
         $null = $s; $null = $e
-        if ($global:win.Dispatcher.CheckAccess()) {
-            Update-AppTheme
-        } else {
-            $global:win.Dispatcher.Invoke({ Update-AppTheme })
-        }
+        try {
+            if ($global:win -and $global:win.Dispatcher -and -not $global:win.Dispatcher.HasShutdownStarted) {
+                if ($global:win.Dispatcher.CheckAccess()) {
+                    Update-AppTheme
+                } else {
+                    $global:win.Dispatcher.Invoke({ Update-AppTheme })
+                }
+            }
+        } catch { $null = $_ }
     }
     [Microsoft.Win32.SystemEvents]::add_UserPreferenceChanged($global:ThemeChangedHandler)
 }
