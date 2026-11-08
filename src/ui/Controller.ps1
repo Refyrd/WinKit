@@ -33,6 +33,7 @@ function Initialize-UIController($winControls) {
     $script:searchResultsWrap = $winControls.SearchResultsWrap
     $script:lblSearchResultStatus = $winControls.LblSearchResultStatus
     $script:btnBackToCats = $winControls.BtnBackToCats
+    $script:pbSearchLoading = $winControls.PbSearchLoading
 
     $script:isConsoleVisible = $false
     $script:checkBoxes = @()
@@ -55,6 +56,7 @@ function Initialize-UIController($winControls) {
 
     function Show-CategoryView {
         if ($script:searchResultsView) { $script:searchResultsView.Visibility = "Collapsed" }
+        if ($script:pbSearchLoading) { $script:pbSearchLoading.Visibility = "Collapsed" }
         $script:tabCats.Visibility = "Visible"
     }
 
@@ -127,6 +129,8 @@ function Initialize-UIController($winControls) {
             $script:lblSearchResultStatus.Text = "Searching WinGet repository for `"$q`"..."
             $script:lblSearchResultStatus.Opacity = 1.0
         }
+        if ($script:pbSearchLoading) { $script:pbSearchLoading.Visibility = "Visible" }
+        if ($script:searchResultsWrap) { $script:searchResultsWrap.Children.Clear() }
         DoEvents
 
         try {
@@ -220,6 +224,8 @@ function Initialize-UIController($winControls) {
                 $script:lblSearchResultStatus.Text = "Search error: $_"
                 $script:lblSearchResultStatus.Opacity = 1.0
             }
+        } finally {
+            if ($script:pbSearchLoading) { $script:pbSearchLoading.Visibility = "Collapsed" }
         }
     }
 
@@ -231,13 +237,35 @@ function Initialize-UIController($winControls) {
 
     # Top search filter & WinGet lookup handlers
     if ($script:txtSearch) {
+        $script:txtSearch.Add_GotFocus({
+            if ($script:txtSearchPlaceholder) { $script:txtSearchPlaceholder.Visibility = "Collapsed" }
+            if ($script:txtSearch.Text) { $script:txtSearch.SelectAll() }
+        })
+
+        $script:txtSearch.Add_LostFocus({
+            if (-not $script:txtSearch.Text.Trim() -and $script:txtSearchPlaceholder) {
+                $script:txtSearchPlaceholder.Visibility = "Visible"
+            }
+        })
+
+        $script:txtSearch.Add_PreviewMouseLeftButtonDown({
+            param($s, $e)
+            $null = $s; $null = $e
+            if (-not $script:txtSearch.IsFocused) {
+                $script:txtSearch.Focus() | Out-Null
+                if ($script:txtSearchPlaceholder) { $script:txtSearchPlaceholder.Visibility = "Collapsed" }
+            }
+        })
+
         $script:txtSearch.Add_TextChanged({
             $q = $script:txtSearch.Text.Trim()
             if ($q) {
                 if ($script:txtSearchPlaceholder) { $script:txtSearchPlaceholder.Visibility = "Collapsed" }
                 if ($script:btnClearSearch) { $script:btnClearSearch.Visibility = "Visible" }
             } else {
-                if ($script:txtSearchPlaceholder) { $script:txtSearchPlaceholder.Visibility = "Visible" }
+                if (-not $script:txtSearch.IsFocused -and $script:txtSearchPlaceholder) {
+                    $script:txtSearchPlaceholder.Visibility = "Visible"
+                }
                 if ($script:btnClearSearch) { $script:btnClearSearch.Visibility = "Collapsed" }
                 Show-CategoryView
             }

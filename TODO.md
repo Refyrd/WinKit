@@ -10,14 +10,17 @@
 ---
 
 ### 🛠 Implemented Improvements & Fixes
+- [x] **Search Box UX & Caret Visibility**:
+  - [x] Added `CaretBrush="{DynamicResource AppText}"` to `TxtSearch` so the text cursor ("палочка") is clearly visible in both dark and light modes.
+  - [x] Made placeholder disappear immediately upon clicking or focusing the search box (`GotFocus` / `PreviewMouseLeftButtonDown`).
+  - [x] Automatically select text on focus so typing immediately enters a new query.
+- [x] **Loading Indicator**:
+  - [x] Added animated Fluent `ProgressBar` (`PbSearchLoading`) in `SearchResultsView` while querying WinGet online.
 - [x] **Remove Search Tab From Categories**:
-  - [x] Removed `🌐 WinGet` tab from `TabCats`. Category bar now contains only true app categories (`Browsers`, `Development`, etc.).
-  - [x] Unified search UX: user types in the top search box; pressing `Enter` transitions to a full-width search results view (`SearchResultsView`) with "Back to Categories" button.
-  - [x] Clearing the search bar or clicking "Back to Categories" returns smoothly to `TabCats`.
+  - [x] Removed `🌐 WinGet` tab from `TabCats`.
+  - [x] Unified search UX: user types in the top search box; pressing `Enter` transitions to `SearchResultsView` with "Back to Categories" button.
 - [x] **Install Script Fix**:
   - [x] Saved [install.ps1](file:///D:/Projects/WinKit/install.ps1) with UTF-8 without BOM and ASCII dashes to ensure clean `irm | iex` execution in Windows PowerShell 5.1.
-- [x] **PSScriptAnalyzer Cleanliness**:
-  - [x] 0 errors, 0 warnings across all scripts.
 - [x] **Catalog & Docs**:
   - [x] Updated `Python 3` package ID in [Apps.ps1](file:///D:/Projects/WinKit/src/config/Apps.ps1).
   - [x] Synchronized [README.md](file:///D:/Projects/WinKit/README.md) and [README.ru.md](file:///D:/Projects/WinKit/README.ru.md).

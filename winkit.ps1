@@ -104,6 +104,7 @@ $winControls = @{
     SearchResultsWrap    = $global:win.FindName("SearchResultsWrap")
     LblSearchResultStatus= $global:win.FindName("LblSearchResultStatus")
     BtnBackToCats        = $global:win.FindName("BtnBackToCats")
+    PbSearchLoading      = $global:win.FindName("PbSearchLoading")
 }
 
 # Initialize UI Controller & Theme
