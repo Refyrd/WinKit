@@ -171,7 +171,7 @@
                 </Grid.ColumnDefinitions>
                 <TextBlock Grid.Column="0" Text="App Installer" FontSize="32" FontWeight="SemiBold" Foreground="{DynamicResource AppText}" VerticalAlignment="Center" Margin="0,0,20,0"/>
 
-                <!-- Search Box -->
+<!-- Search Box -->
                 <Border Grid.Column="2" Width="250" Height="34" Background="{DynamicResource ControlBg}" BorderBrush="{DynamicResource BorderClr}" BorderThickness="1" CornerRadius="6" VerticalAlignment="Center" Margin="0,0,12,0">
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -200,8 +200,31 @@
                 </Button>
             </Grid>
             
-            <TabControl Name="TabCats" Grid.Row="1" Background="Transparent" BorderThickness="0" Padding="15" FocusVisualStyle="{x:Null}">
-            </TabControl>
+            <Grid Grid.Row="1">
+                <TabControl Name="TabCats" Background="Transparent" BorderThickness="0" Padding="15" FocusVisualStyle="{x:Null}">
+                </TabControl>
+
+                <Grid Name="SearchResultsView" Visibility="Collapsed" Margin="15,0,15,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <DockPanel Grid.Row="0" Margin="0,0,0,12">
+                        <Button Name="BtnBackToCats" Content="Back to Categories" DockPanel.Dock="Right" Height="30" Padding="12,4"/>
+                        <StackPanel Orientation="Vertical" VerticalAlignment="Center">
+                            <TextBlock Name="LblSearchResultTitle" Text="WinGet Search Results" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource AppText}"/>
+                            <TextBlock Name="LblSearchResultStatus" Text="Searching..." FontSize="12" Opacity="0.7" Foreground="{DynamicResource AppText}" Margin="0,2,0,0"/>
+                        </StackPanel>
+                    </DockPanel>
+
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" FocusVisualStyle="{x:Null}">
+                        <WrapPanel Name="SearchResultsWrap" Margin="0,5,0,5"/>
+                    </ScrollViewer>
+                </Grid>
+            </Grid>
+
+
             
             <Border Grid.Row="2" Background="{DynamicResource BottomBarBg}" BorderBrush="{DynamicResource BorderClr}" BorderThickness="1" CornerRadius="8" Padding="15" Margin="0,20,0,0">
                 <Grid>

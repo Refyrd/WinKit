@@ -100,6 +100,10 @@ $winControls = @{
     TxtSearchPlaceholder = $global:win.FindName("TxtSearchPlaceholder")
     BtnClearSearch       = $global:win.FindName("BtnClearSearch")
     BtnExportLog         = $global:win.FindName("BtnExportLog")
+    SearchResultsView    = $global:win.FindName("SearchResultsView")
+    SearchResultsWrap    = $global:win.FindName("SearchResultsWrap")
+    LblSearchResultStatus= $global:win.FindName("LblSearchResultStatus")
+    BtnBackToCats        = $global:win.FindName("BtnBackToCats")
 }
 
 # Initialize UI Controller & Theme

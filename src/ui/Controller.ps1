@@ -29,6 +29,10 @@ function Initialize-UIController($winControls) {
     $script:txtSearchPlaceholder = $winControls.TxtSearchPlaceholder
     $script:btnClearSearch = $winControls.BtnClearSearch
     $script:btnExportLog = $winControls.BtnExportLog
+    $script:searchResultsView = $winControls.SearchResultsView
+    $script:searchResultsWrap = $winControls.SearchResultsWrap
+    $script:lblSearchResultStatus = $winControls.LblSearchResultStatus
+    $script:btnBackToCats = $winControls.BtnBackToCats
 
     $script:isConsoleVisible = $false
     $script:checkBoxes = @()
@@ -47,6 +51,16 @@ function Initialize-UIController($winControls) {
         } else {
             $script:btnInstall.Content = "Install"
         }
+    }
+
+    function Show-CategoryView {
+        if ($script:searchResultsView) { $script:searchResultsView.Visibility = "Collapsed" }
+        $script:tabCats.Visibility = "Visible"
+    }
+
+    function Show-SearchResultView {
+        $script:tabCats.Visibility = "Collapsed"
+        if ($script:searchResultsView) { $script:searchResultsView.Visibility = "Visible" }
     }
 
     # Populate categories and apps
@@ -103,48 +117,16 @@ function Initialize-UIController($winControls) {
         $script:tabCats.Items.Add($tabItem) | Out-Null
     }
 
-    # 🌐 WinGet Online Search Results Tab
-    $onlineTab = New-Object System.Windows.Controls.TabItem
-    $onlineTab.Header = "🌐 WinGet"
-    $script:onlineSearchTab = $onlineTab
-
-    $onlineGrid = New-Object System.Windows.Controls.Grid
-    $onlineGrid.Margin = "10,5,10,5"
-    $r1 = New-Object System.Windows.Controls.RowDefinition; $r1.Height = [System.Windows.GridLength]::Auto
-    $r2 = New-Object System.Windows.Controls.RowDefinition; $r2.Height = New-Object System.Windows.GridLength(1, [System.Windows.GridUnitType]::Star)
-    $onlineGrid.RowDefinitions.Add($r1)
-    $onlineGrid.RowDefinitions.Add($r2)
-
-    $script:lblOnlineStatus = New-Object System.Windows.Controls.TextBlock
-    $script:lblOnlineStatus.Text = "Type any app name in the top search bar and press Enter to search the WinGet repository."
-    $script:lblOnlineStatus.FontSize = 13
-    $script:lblOnlineStatus.Opacity = 0.7
-    $script:lblOnlineStatus.Foreground = $script:win.Resources["AppText"]
-    $script:lblOnlineStatus.Margin = "4,2,0,10"
-    [System.Windows.Controls.Grid]::SetRow($script:lblOnlineStatus, 0)
-    $onlineGrid.Children.Add($script:lblOnlineStatus) | Out-Null
-
-    $onlineScroll = New-Object System.Windows.Controls.ScrollViewer
-    $onlineScroll.VerticalScrollBarVisibility = "Auto"
-    $onlineScroll.FocusVisualStyle = $null
-
-    $script:onlineResultsWrap = New-Object System.Windows.Controls.WrapPanel
-    $script:onlineResultsWrap.Margin = "0,5,0,5"
-    $onlineScroll.Content = $script:onlineResultsWrap
-    [System.Windows.Controls.Grid]::SetRow($onlineScroll, 1)
-    $onlineGrid.Children.Add($onlineScroll) | Out-Null
-
-    $onlineTab.Content = $onlineGrid
-    $script:tabCats.Items.Add($onlineTab) | Out-Null
-
     $script:doOnlineSearch = {
         param([string]$query)
         $q = $query.Trim()
         if (-not $q) { return }
 
-        $script:onlineSearchTab.IsSelected = $true
-        $script:lblOnlineStatus.Text = "Searching WinGet repository for `"$q`"..."
-        $script:lblOnlineStatus.Opacity = 1.0
+        Show-SearchResultView
+        if ($script:lblSearchResultStatus) {
+            $script:lblSearchResultStatus.Text = "Searching WinGet repository for `"$q`"..."
+            $script:lblSearchResultStatus.Opacity = 1.0
+        }
         DoEvents
 
         try {
@@ -175,13 +157,17 @@ function Initialize-UIController($winControls) {
                 }
             }
 
-            $script:onlineResultsWrap.Children.Clear()
+            if ($script:searchResultsWrap) { $script:searchResultsWrap.Children.Clear() }
             if ($foundApps.Count -eq 0) {
-                $script:lblOnlineStatus.Text = "No packages found for `"$q`" in WinGet repository."
-                $script:lblOnlineStatus.Opacity = 0.8
+                if ($script:lblSearchResultStatus) {
+                    $script:lblSearchResultStatus.Text = "No packages found for `"$q`" in WinGet repository."
+                    $script:lblSearchResultStatus.Opacity = 0.8
+                }
             } else {
-                $script:lblOnlineStatus.Text = "Found $($foundApps.Count) package(s) for `"$q`". Select to include in installation:"
-                $script:lblOnlineStatus.Opacity = 0.8
+                if ($script:lblSearchResultStatus) {
+                    $script:lblSearchResultStatus.Text = "Found $($foundApps.Count) package(s) for `"$q`". Select to include in installation:"
+                    $script:lblSearchResultStatus.Opacity = 0.8
+                }
 
                 foreach ($item in $foundApps) {
                     $card = New-Object System.Windows.Controls.Border
@@ -226,13 +212,21 @@ function Initialize-UIController($winControls) {
                     $cardPanel.Children.Add($subText) | Out-Null
 
                     $card.Child = $cardPanel
-                    $script:onlineResultsWrap.Children.Add($card) | Out-Null
+                    if ($script:searchResultsWrap) { $script:searchResultsWrap.Children.Add($card) | Out-Null }
                 }
             }
         } catch {
-            $script:lblOnlineStatus.Text = "Search error: $_"
-            $script:lblOnlineStatus.Opacity = 1.0
+            if ($script:lblSearchResultStatus) {
+                $script:lblSearchResultStatus.Text = "Search error: $_"
+                $script:lblSearchResultStatus.Opacity = 1.0
+            }
         }
+    }
+
+    if ($script:btnBackToCats) {
+        $script:btnBackToCats.Add_Click({
+            Show-CategoryView
+        })
     }
 
     # Top search filter & WinGet lookup handlers
@@ -245,6 +239,7 @@ function Initialize-UIController($winControls) {
             } else {
                 if ($script:txtSearchPlaceholder) { $script:txtSearchPlaceholder.Visibility = "Visible" }
                 if ($script:btnClearSearch) { $script:btnClearSearch.Visibility = "Collapsed" }
+                Show-CategoryView
             }
 
             $firstMatchingTab = -1
@@ -283,6 +278,7 @@ function Initialize-UIController($winControls) {
     if ($script:btnClearSearch) {
         $script:btnClearSearch.Add_Click({
             $script:txtSearch.Text = ""
+            Show-CategoryView
         })
     }
 
