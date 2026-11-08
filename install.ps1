@@ -1,8 +1,8 @@
-﻿# WinKit — Quick Install Script
+# WinKit - Quick Install Script
 # Run with: irm https://raw.githubusercontent.com/Refyrd/WinKit/main/install.ps1 | iex
 
 Write-Host ""
-Write-Host "  ⚡ WinKit — Downloading application..." -ForegroundColor Cyan
+Write-Host "  [*] WinKit - Downloading application..." -ForegroundColor Cyan
 Write-Host ""
 
 $tempDir = Join-Path $env:TEMP "WinKit"

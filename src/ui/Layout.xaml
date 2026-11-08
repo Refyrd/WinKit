@@ -172,7 +172,7 @@
                 <TextBlock Grid.Column="0" Text="App Installer" FontSize="32" FontWeight="SemiBold" Foreground="{DynamicResource AppText}" VerticalAlignment="Center" Margin="0,0,20,0"/>
 
                 <!-- Search Box -->
-                <Border Grid.Column="2" Width="220" Height="34" Background="{DynamicResource ControlBg}" BorderBrush="{DynamicResource BorderClr}" BorderThickness="1" CornerRadius="6" VerticalAlignment="Center" Margin="0,0,12,0">
+                <Border Grid.Column="2" Width="250" Height="34" Background="{DynamicResource ControlBg}" BorderBrush="{DynamicResource BorderClr}" BorderThickness="1" CornerRadius="6" VerticalAlignment="Center" Margin="0,0,12,0">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>

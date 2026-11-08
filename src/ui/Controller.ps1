@@ -103,74 +103,35 @@ function Initialize-UIController($winControls) {
         $script:tabCats.Items.Add($tabItem) | Out-Null
     }
 
-    # 🌐 WinGet Online Search Tab
+    # 🌐 WinGet Online Search Results Tab
     $onlineTab = New-Object System.Windows.Controls.TabItem
-    $onlineTab.Header = "🌐 WinGet Search"
+    $onlineTab.Header = "🌐 WinGet"
     $script:onlineSearchTab = $onlineTab
 
     $onlineGrid = New-Object System.Windows.Controls.Grid
     $onlineGrid.Margin = "10,5,10,5"
     $r1 = New-Object System.Windows.Controls.RowDefinition; $r1.Height = [System.Windows.GridLength]::Auto
-    $r2 = New-Object System.Windows.Controls.RowDefinition; $r2.Height = [System.Windows.GridLength]::Auto
-    $r3 = New-Object System.Windows.Controls.RowDefinition; $r3.Height = New-Object System.Windows.GridLength(1, [System.Windows.GridUnitType]::Star)
+    $r2 = New-Object System.Windows.Controls.RowDefinition; $r2.Height = New-Object System.Windows.GridLength(1, [System.Windows.GridUnitType]::Star)
     $onlineGrid.RowDefinitions.Add($r1)
     $onlineGrid.RowDefinitions.Add($r2)
-    $onlineGrid.RowDefinitions.Add($r3)
 
-    $searchBarGrid = New-Object System.Windows.Controls.Grid
-    $c1 = New-Object System.Windows.Controls.ColumnDefinition; $c1.Width = New-Object System.Windows.GridLength(1, [System.Windows.GridUnitType]::Star)
-    $c2 = New-Object System.Windows.Controls.ColumnDefinition; $c2.Width = [System.Windows.GridLength]::Auto
-    $searchBarGrid.ColumnDefinitions.Add($c1)
-    $searchBarGrid.ColumnDefinitions.Add($c2)
-
-    $searchBoxBorder = New-Object System.Windows.Controls.Border
-    $searchBoxBorder.Background = $script:win.Resources["ControlBg"]
-    $searchBoxBorder.BorderBrush = $script:win.Resources["BorderClr"]
-    $searchBoxBorder.BorderThickness = 1
-    $searchBoxBorder.CornerRadius = 6
-    $searchBoxBorder.Height = 36
-    $searchBoxBorder.Margin = "0,0,10,0"
-
-    $txtOnlineSearch = New-Object System.Windows.Controls.TextBox
-    $txtOnlineSearch.Background = [System.Windows.Media.Brushes]::Transparent
-    $txtOnlineSearch.Foreground = $script:win.Resources["AppText"]
-    $txtOnlineSearch.BorderThickness = 0
-    $txtOnlineSearch.VerticalAlignment = "Center"
-    $txtOnlineSearch.FontSize = 14
-    $txtOnlineSearch.Padding = "10,0,10,0"
-    $searchBoxBorder.Child = $txtOnlineSearch
-    [System.Windows.Controls.Grid]::SetColumn($searchBoxBorder, 0)
-    $searchBarGrid.Children.Add($searchBoxBorder) | Out-Null
-    $script:txtOnlineSearch = $txtOnlineSearch
-
-    $btnRunOnlineSearch = New-Object System.Windows.Controls.Button
-    $btnRunOnlineSearch.Content = "Search WinGet"
-    $btnRunOnlineSearch.Height = 36
-    $btnRunOnlineSearch.Padding = "16,0,16,0"
-    $btnRunOnlineSearch.Style = $script:win.Resources["PrimaryButton"]
-    [System.Windows.Controls.Grid]::SetColumn($btnRunOnlineSearch, 1)
-    $searchBarGrid.Children.Add($btnRunOnlineSearch) | Out-Null
-
-    [System.Windows.Controls.Grid]::SetRow($searchBarGrid, 0)
-    $onlineGrid.Children.Add($searchBarGrid) | Out-Null
-
-    $lblOnlineStatus = New-Object System.Windows.Controls.TextBlock
-    $lblOnlineStatus.Text = "Type any package name (e.g. blender, rust, telegram, audacity) and click Search."
-    $lblOnlineStatus.FontSize = 12
-    $lblOnlineStatus.Opacity = 0.7
-    $lblOnlineStatus.Foreground = $script:win.Resources["AppText"]
-    $lblOnlineStatus.Margin = "2,6,0,8"
-    [System.Windows.Controls.Grid]::SetRow($lblOnlineStatus, 1)
-    $onlineGrid.Children.Add($lblOnlineStatus) | Out-Null
+    $script:lblOnlineStatus = New-Object System.Windows.Controls.TextBlock
+    $script:lblOnlineStatus.Text = "Type any app name in the top search bar and press Enter to search the WinGet repository."
+    $script:lblOnlineStatus.FontSize = 13
+    $script:lblOnlineStatus.Opacity = 0.7
+    $script:lblOnlineStatus.Foreground = $script:win.Resources["AppText"]
+    $script:lblOnlineStatus.Margin = "4,2,0,10"
+    [System.Windows.Controls.Grid]::SetRow($script:lblOnlineStatus, 0)
+    $onlineGrid.Children.Add($script:lblOnlineStatus) | Out-Null
 
     $onlineScroll = New-Object System.Windows.Controls.ScrollViewer
     $onlineScroll.VerticalScrollBarVisibility = "Auto"
     $onlineScroll.FocusVisualStyle = $null
 
-    $onlineResultsWrap = New-Object System.Windows.Controls.WrapPanel
-    $onlineResultsWrap.Margin = "0,5,0,5"
-    $onlineScroll.Content = $onlineResultsWrap
-    [System.Windows.Controls.Grid]::SetRow($onlineScroll, 2)
+    $script:onlineResultsWrap = New-Object System.Windows.Controls.WrapPanel
+    $script:onlineResultsWrap.Margin = "0,5,0,5"
+    $onlineScroll.Content = $script:onlineResultsWrap
+    [System.Windows.Controls.Grid]::SetRow($onlineScroll, 1)
     $onlineGrid.Children.Add($onlineScroll) | Out-Null
 
     $onlineTab.Content = $onlineGrid
@@ -181,9 +142,9 @@ function Initialize-UIController($winControls) {
         $q = $query.Trim()
         if (-not $q) { return }
 
-        $lblOnlineStatus.Text = "Searching WinGet repository for `"$q`"..."
-        $lblOnlineStatus.Opacity = 1.0
-        $btnRunOnlineSearch.IsEnabled = $false
+        $script:onlineSearchTab.IsSelected = $true
+        $script:lblOnlineStatus.Text = "Searching WinGet repository for `"$q`"..."
+        $script:lblOnlineStatus.Opacity = 1.0
         DoEvents
 
         try {
@@ -214,13 +175,13 @@ function Initialize-UIController($winControls) {
                 }
             }
 
-            $onlineResultsWrap.Children.Clear()
+            $script:onlineResultsWrap.Children.Clear()
             if ($foundApps.Count -eq 0) {
-                $lblOnlineStatus.Text = "No packages found for `"$q`" in WinGet repository."
-                $lblOnlineStatus.Opacity = 0.8
+                $script:lblOnlineStatus.Text = "No packages found for `"$q`" in WinGet repository."
+                $script:lblOnlineStatus.Opacity = 0.8
             } else {
-                $lblOnlineStatus.Text = "Found $($foundApps.Count) package(s) in WinGet. Select to include in installation."
-                $lblOnlineStatus.Opacity = 0.8
+                $script:lblOnlineStatus.Text = "Found $($foundApps.Count) package(s) for `"$q`". Select to include in installation:"
+                $script:lblOnlineStatus.Opacity = 0.8
 
                 foreach ($item in $foundApps) {
                     $card = New-Object System.Windows.Controls.Border
@@ -265,29 +226,16 @@ function Initialize-UIController($winControls) {
                     $cardPanel.Children.Add($subText) | Out-Null
 
                     $card.Child = $cardPanel
-                    $onlineResultsWrap.Children.Add($card) | Out-Null
+                    $script:onlineResultsWrap.Children.Add($card) | Out-Null
                 }
             }
         } catch {
-            $lblOnlineStatus.Text = "Search error: $_"
-            $lblOnlineStatus.Opacity = 1.0
-        } finally {
-            $btnRunOnlineSearch.IsEnabled = $true
+            $script:lblOnlineStatus.Text = "Search error: $_"
+            $script:lblOnlineStatus.Opacity = 1.0
         }
     }
 
-    $btnRunOnlineSearch.Add_Click({
-        & $script:doOnlineSearch $script:txtOnlineSearch.Text
-    })
-
-    $txtOnlineSearch.Add_KeyDown({
-        param($s, $e); $null = $s
-        if ($e.Key -eq [System.Windows.Input.Key]::Enter) {
-            & $script:doOnlineSearch $script:txtOnlineSearch.Text
-        }
-    })
-
-    # Search filter handlers
+    # Top search filter & WinGet lookup handlers
     if ($script:txtSearch) {
         $script:txtSearch.Add_TextChanged({
             $q = $script:txtSearch.Text.Trim()
@@ -321,12 +269,11 @@ function Initialize-UIController($winControls) {
         })
 
         $script:txtSearch.Add_KeyDown({
-            param($s, $e); $null = $s
+            param($s, $e)
+            $null = $s
             if ($e.Key -eq [System.Windows.Input.Key]::Enter) {
                 $q = $script:txtSearch.Text.Trim()
                 if ($q) {
-                    $script:onlineSearchTab.IsSelected = $true
-                    $script:txtOnlineSearch.Text = $q
                     & $script:doOnlineSearch $q
                 }
             }
