@@ -6,7 +6,7 @@
 - [x] Analyze codebase architecture and module separation (`src/ui`, `src/core`, `src/config`)
 - [x] Run PSScriptAnalyzer linting (`PSUseApprovedVerbs` in `winkit.ps1`, `PSUseBOMForUnicodeEncodedFile` in `Installer.ps1`)
 - [x] Identify documentation desync in `README.md` and `README.ru.md` (app count, config file paths, preset mechanics)
-- [x] User instruction: Keep `.gitignore` untouched
+- [x] Cleaned up bloated `.gitignore`: removed 6700+ lines of foreign stack templates, kept rules for Windows, logs, VS Code, and local presets.
 
 ---
 

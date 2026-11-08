@@ -4,18 +4,27 @@ ehthumbs.db
 Desktop.ini
 $RECYCLE.BIN/
 
-# Temporary files
+# Temporary and log files
 *.tmp
 *.log
 *.bak
 ~$*
+winget_run_*
+winget_out_*
+winget_done_*
 
-# IDE
-.vscode/
+# Local user presets
+*-preset.txt
+
+# Editors and IDEs
 .idea/
 *.suo
 *.user
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
 
 # OS generated
 *.DS_Store
-
