@@ -67,7 +67,6 @@ function Initialize-UIController($winControls) {
     function script:Show-SearchResultView {
         if ($script:tabCats) {
             $script:tabCats.Visibility = "Collapsed"
-            $script:tabCats.IsEnabled = $false
         }
         if ($script:searchResultsView) { $script:searchResultsView.Visibility = "Visible" }
     }
@@ -246,9 +245,8 @@ function Initialize-UIController($winControls) {
     if ($script:txtSearch) {
         $script:txtSearch.Add_GotFocus({
             if ($script:txtSearchPlaceholder) { $script:txtSearchPlaceholder.Visibility = "Collapsed" }
-            if ($script:tabCats) {
-                $script:tabCats.IsEnabled = $false
-                $script:tabCats.Opacity = 0.4
+            if ($script:tabCats -and $script:searchResultsView.Visibility -ne "Visible") {
+                $script:tabCats.Opacity = 0.5
             }
             if ($script:txtSearch.Text) { $script:txtSearch.SelectAll() }
         })
@@ -256,10 +254,10 @@ function Initialize-UIController($winControls) {
         $script:txtSearch.Add_LostFocus({
             if (-not $script:txtSearch.Text.Trim()) {
                 if ($script:txtSearchPlaceholder) { $script:txtSearchPlaceholder.Visibility = "Visible" }
-                if ($script:tabCats -and $script:searchResultsView.Visibility -ne "Visible") {
-                    $script:tabCats.IsEnabled = $true
-                    $script:tabCats.Opacity = 1.0
-                }
+            }
+            if ($script:tabCats -and $script:searchResultsView.Visibility -ne "Visible") {
+                $script:tabCats.IsEnabled = $true
+                $script:tabCats.Opacity = 1.0
             }
         })
 
@@ -268,10 +266,6 @@ function Initialize-UIController($winControls) {
             if ($q) {
                 if ($script:txtSearchPlaceholder) { $script:txtSearchPlaceholder.Visibility = "Collapsed" }
                 if ($script:btnClearSearch) { $script:btnClearSearch.Visibility = "Visible" }
-                if ($script:tabCats) {
-                    $script:tabCats.IsEnabled = $false
-                    $script:tabCats.Opacity = 0.4
-                }
             } else {
                 if (-not $script:txtSearch.IsFocused -and $script:txtSearchPlaceholder) {
                     $script:txtSearchPlaceholder.Visibility = "Visible"
@@ -320,6 +314,39 @@ function Initialize-UIController($winControls) {
             Show-CategoryView
         })
     }
+
+    # Click on background or categories reactivates categories and unfocuses search
+    $script:win.Add_PreviewMouseDown({
+        param($s, $e)
+        $null = $s
+        if ($script:txtSearch -and $script:txtSearch.IsFocused) {
+            $pos = $e.GetPosition($script:txtSearch)
+            $isInside = ($pos.X -ge 0 -and $pos.X -le $script:txtSearch.ActualWidth -and 
+                         $pos.Y -ge 0 -and $pos.Y -le $script:txtSearch.ActualHeight)
+
+            if (-not $isInside -and $script:btnClearSearch -and $script:btnClearSearch.Visibility -eq "Visible") {
+                $posClear = $e.GetPosition($script:btnClearSearch)
+                if ($posClear.X -ge 0 -and $posClear.X -le $script:btnClearSearch.ActualWidth -and 
+                    $posClear.Y -ge 0 -and $posClear.Y -le $script:btnClearSearch.ActualHeight) {
+                    $isInside = $true
+                }
+            }
+
+            if (-not $isInside) {
+                # Clicked outside search: restore categories and drop search focus
+                if ($script:tabCats -and $script:searchResultsView.Visibility -ne "Visible") {
+                    $script:tabCats.IsEnabled = $true
+                    $script:tabCats.Opacity = 1.0
+                }
+
+                if (-not $script:txtSearch.Text.Trim() -and $script:txtSearchPlaceholder) {
+                    $script:txtSearchPlaceholder.Visibility = "Visible"
+                }
+
+                [System.Windows.Input.Keyboard]::ClearFocus()
+            }
+        }
+    })
 
     # Theme toggle handler
     $script:btnTheme.Add_Click({

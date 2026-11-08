@@ -10,13 +10,12 @@
 ---
 
 ### 🛠 Implemented Improvements & Fixes
-- [x] **Search Box Activation & Category Inactivity**:
-  - [x] Fixed function scope bug: declared `script:Show-CategoryView` and `script:Show-SearchResultView` in script scope so they are callable from any scriptblock.
-  - [x] Used `PreviewKeyDown` for `[Enter]` with `$e.Handled = $true` so online search always triggers without being intercepted.
-  - [x] When search is focused or active, category tabs automatically become inactive (`IsEnabled = $false`, `Opacity = 0.4`), clearly showing that search mode is active.
-  - [x] Exiting search, clearing text, or clicking "Back to Categories" smoothly re-enables categories (`IsEnabled = $true`, `Opacity = 1.0`).
-- [x] **Caret & Loading Bar**:
-  - [x] Text caret ("палочка") styled with `CaretBrush="{DynamicResource AppText}"`.
+- [x] **Background / Category Reactivation On Click**:
+  - [x] Added `Window.PreviewMouseDown` global hit-testing: clicking anywhere outside the search box (on background, categories, or apps) clears search focus and restores categories to active state (`Opacity = 1.0`, `IsEnabled = $true`).
+  - [x] While search is focused, categories are non-intrusively dimmed (`Opacity = 0.5`) without hard-disabling clicks, so clicking a tab or checkbox activates it immediately.
+- [x] **Search Box Activation & Caret**:
+  - [x] Caret ("палочка") styled with `CaretBrush="{DynamicResource AppText}"` for visibility in both dark and light modes.
+  - [x] `PreviewKeyDown` with `$e.Handled = $true` guarantees Enter key triggers WinGet online search without missing events.
   - [x] Animated Fluent progress bar appears during WinGet online query.
 - [x] **Install Script Fix**:
   - [x] Saved [install.ps1](file:///D:/Projects/WinKit/install.ps1) with UTF-8 without BOM and ASCII dashes to ensure clean `irm | iex` execution in Windows PowerShell 5.1.
