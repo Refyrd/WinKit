@@ -1,4 +1,4 @@
-# --- WinKit Installation Engine ---
+﻿# --- WinKit Installation Engine ---
 
 function Start-AppsInstallation($toInstall, $winControls) {
     $TxtLog = $winControls.TxtLog

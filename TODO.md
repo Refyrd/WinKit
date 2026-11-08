@@ -1,25 +1,28 @@
 # WinKit — Task & Roadmap Tracker
 
-## 📌 Status: In Progress
+## 📌 Status: Completed
 
 ### 🔍 Analysis & Audit Findings
 - [x] Analyze codebase architecture and module separation (`src/ui`, `src/core`, `src/config`)
 - [x] Run PSScriptAnalyzer linting (`PSUseApprovedVerbs` in `winkit.ps1`, `PSUseBOMForUnicodeEncodedFile` in `Installer.ps1`)
 - [x] Identify documentation desync in `README.md` and `README.ru.md` (app count, config file paths, preset mechanics)
-- [ ] Review bloated `.gitignore` (6700+ lines of foreign stack templates)
+- [x] User instruction: Keep `.gitignore` untouched
 
 ---
 
-### 🛠 Planned Improvements & Bug Fixes
-- [ ] **Docs sync**: Update [README.md](file:///D:/Projects/WinKit/README.md) & [README.ru.md](file:///D:/Projects/WinKit/README.ru.md) with current app catalog (42 apps), modular structure (`src/config/Apps.ps1`), and custom preset file picker dialogs.
-- [ ] **ScriptAnalyzer Cleanliness**: Fix function naming verb in [winkit.ps1](file:///D:/Projects/WinKit/winkit.ps1) and file encoding BOM in [Installer.ps1](file:///D:/Projects/WinKit/src/core/Installer.ps1).
-- [ ] **App Catalog Refinement**: Update `Python.Python.3.12` to `Python.Python.3` (or add latest versions) in [Apps.ps1](file:///D:/Projects/WinKit/src/config/Apps.ps1).
-- [ ] **Clean .gitignore**: Remove unused foreign tech stack templates, keeping clean rules for Windows, PowerShell, VS Code, and local secrets.
-
----
-
-### 💡 Feature Ideas for WinKit
-1. **Selection Counter on Install Button**: Display exact count on button (e.g. `Install (4)`) so user immediately sees what is queued.
-2. **"Installed" Pre-Detection**: Query `winget list` in background upon launch and mark already installed apps with a subtle badge or tooltip.
-3. **Unified "All Apps" Search View**: Filter seamlessly across all categories or show matching count badges on tab headers.
-4. **Export / Import Preset as JSON**: Offer portable JSON presets alongside plain text.
+### 🛠 Implemented Improvements & Features
+- [x] **PSScriptAnalyzer Fixes**:
+  - [x] Renamed `Ensure-WinGet` to approved verb `Assert-WinGet` in [winkit.ps1](file:///D:/Projects/WinKit/winkit.ps1).
+  - [x] Re-encoded [Installer.ps1](file:///D:/Projects/WinKit/src/core/Installer.ps1) and [Controller.ps1](file:///D:/Projects/WinKit/src/ui/Controller.ps1) with UTF-8 BOM.
+  - [x] Re-tested: 0 warnings, 0 errors in PSScriptAnalyzer.
+- [x] **Catalog Update**:
+  - [x] Updated `Python 3` package ID to `Python.Python.3` in [Apps.ps1](file:///D:/Projects/WinKit/src/config/Apps.ps1).
+- [x] **Feature: WinGet Online Search & Store**:
+  - [x] Added `🌐 WinGet Search` tab with query input, instant search button, and live status feedback.
+  - [x] Added `[Enter]` shortcut in both main search box and online search tab to query WinGet online.
+  - [x] Seamlessly integrated online package selections into the unified install pipeline.
+- [x] **Dynamic Selection Counter**:
+  - [x] Added live count indicator on the Install button (`Install (N)`).
+- [x] **Documentation Sync**:
+  - [x] Updated [README.md](file:///D:/Projects/WinKit/README.md) (42+ apps, WinGet online search feature, preset dialogs, modular structure).
+  - [x] Updated [README.ru.md](file:///D:/Projects/WinKit/README.ru.md) with complete Russian translation.

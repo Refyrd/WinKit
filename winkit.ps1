@@ -21,7 +21,7 @@ $Host.UI.RawUI.WindowTitle = "WinKit - Backend Service"
 Write-Host "WinKit GUI Initialization..." -ForegroundColor Cyan
 
 # Ensure WinGet is present (auto-download via Microsoft.WinGet.Client on stripped OS builds)
-function Ensure-WinGet {
+function Assert-WinGet {
     $hasWinget = [bool](Get-Command "winget.exe" -ErrorAction SilentlyContinue)
     $winApps = "$env:LOCALAPPDATA\Microsoft\WindowsApps"
     if (-not $hasWinget -and (Test-Path "$winApps\winget.exe")) {
@@ -53,7 +53,7 @@ function Ensure-WinGet {
     }
 }
 
-Ensure-WinGet
+Assert-WinGet
 
 # Hide Console Window while GUI is active
 Add-Type -Name Window -Namespace Console -MemberDefinition '[DllImport("Kernel32.dll")]public static extern IntPtr GetConsoleWindow();[DllImport("user32.dll")]public static extern bool ShowWindow(IntPtr hWnd, Int32 nCmdShow);' -ErrorAction Ignore

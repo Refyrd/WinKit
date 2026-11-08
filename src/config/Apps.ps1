@@ -1,4 +1,4 @@
-﻿# --- WinKit App Definitions & Categories ---
+# --- WinKit App Definitions & Categories ---
 
 $global:apps = @(
     @{Name="Google Chrome";      Id="Google.Chrome";              Cat=0; Sel=$false},
@@ -7,7 +7,7 @@ $global:apps = @(
     @{Name="Vivaldi";            Id="VivaldiTechnologies.Vivaldi";Cat=0; Sel=$false},
     @{Name="Visual Studio Code"; Id="Microsoft.VisualStudioCode"; Cat=1; Sel=$false},
     @{Name="Git";                Id="Git.Git";                    Cat=1; Sel=$false},
-    @{Name="Python 3";           Id="Python.Python.3.12";         Cat=1; Sel=$false},
+    @{Name="Python 3";           Id="Python.Python.3";            Cat=1; Sel=$false},
     @{Name="Node.js LTS";        Id="OpenJS.NodeJS.LTS";          Cat=1; Sel=$false},
     @{Name="Notepad++";          Id="Notepad++.Notepad++";        Cat=1; Sel=$false},
     @{Name="Docker Desktop";     Id="Docker.DockerDesktop";       Cat=1; Sel=$false},
