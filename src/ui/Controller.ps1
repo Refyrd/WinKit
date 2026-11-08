@@ -54,14 +54,21 @@ function Initialize-UIController($winControls) {
         }
     }
 
-    function Show-CategoryView {
+    function script:Show-CategoryView {
         if ($script:searchResultsView) { $script:searchResultsView.Visibility = "Collapsed" }
         if ($script:pbSearchLoading) { $script:pbSearchLoading.Visibility = "Collapsed" }
-        $script:tabCats.Visibility = "Visible"
+        if ($script:tabCats) {
+            $script:tabCats.Visibility = "Visible"
+            $script:tabCats.IsEnabled = $true
+            $script:tabCats.Opacity = 1.0
+        }
     }
 
-    function Show-SearchResultView {
-        $script:tabCats.Visibility = "Collapsed"
+    function script:Show-SearchResultView {
+        if ($script:tabCats) {
+            $script:tabCats.Visibility = "Collapsed"
+            $script:tabCats.IsEnabled = $false
+        }
         if ($script:searchResultsView) { $script:searchResultsView.Visibility = "Visible" }
     }
 
@@ -239,21 +246,20 @@ function Initialize-UIController($winControls) {
     if ($script:txtSearch) {
         $script:txtSearch.Add_GotFocus({
             if ($script:txtSearchPlaceholder) { $script:txtSearchPlaceholder.Visibility = "Collapsed" }
+            if ($script:tabCats) {
+                $script:tabCats.IsEnabled = $false
+                $script:tabCats.Opacity = 0.4
+            }
             if ($script:txtSearch.Text) { $script:txtSearch.SelectAll() }
         })
 
         $script:txtSearch.Add_LostFocus({
-            if (-not $script:txtSearch.Text.Trim() -and $script:txtSearchPlaceholder) {
-                $script:txtSearchPlaceholder.Visibility = "Visible"
-            }
-        })
-
-        $script:txtSearch.Add_PreviewMouseLeftButtonDown({
-            param($s, $e)
-            $null = $s; $null = $e
-            if (-not $script:txtSearch.IsFocused) {
-                $script:txtSearch.Focus() | Out-Null
-                if ($script:txtSearchPlaceholder) { $script:txtSearchPlaceholder.Visibility = "Collapsed" }
+            if (-not $script:txtSearch.Text.Trim()) {
+                if ($script:txtSearchPlaceholder) { $script:txtSearchPlaceholder.Visibility = "Visible" }
+                if ($script:tabCats -and $script:searchResultsView.Visibility -ne "Visible") {
+                    $script:tabCats.IsEnabled = $true
+                    $script:tabCats.Opacity = 1.0
+                }
             }
         })
 
@@ -262,6 +268,10 @@ function Initialize-UIController($winControls) {
             if ($q) {
                 if ($script:txtSearchPlaceholder) { $script:txtSearchPlaceholder.Visibility = "Collapsed" }
                 if ($script:btnClearSearch) { $script:btnClearSearch.Visibility = "Visible" }
+                if ($script:tabCats) {
+                    $script:tabCats.IsEnabled = $false
+                    $script:tabCats.Opacity = 0.4
+                }
             } else {
                 if (-not $script:txtSearch.IsFocused -and $script:txtSearchPlaceholder) {
                     $script:txtSearchPlaceholder.Visibility = "Visible"
@@ -291,10 +301,11 @@ function Initialize-UIController($winControls) {
             }
         })
 
-        $script:txtSearch.Add_KeyDown({
+        $script:txtSearch.Add_PreviewKeyDown({
             param($s, $e)
             $null = $s
             if ($e.Key -eq [System.Windows.Input.Key]::Enter) {
+                $e.Handled = $true
                 $q = $script:txtSearch.Text.Trim()
                 if ($q) {
                     & $script:doOnlineSearch $q

@@ -10,15 +10,14 @@
 ---
 
 ### 🛠 Implemented Improvements & Fixes
-- [x] **Search Box UX & Caret Visibility**:
-  - [x] Added `CaretBrush="{DynamicResource AppText}"` to `TxtSearch` so the text cursor ("палочка") is clearly visible in both dark and light modes.
-  - [x] Made placeholder disappear immediately upon clicking or focusing the search box (`GotFocus` / `PreviewMouseLeftButtonDown`).
-  - [x] Automatically select text on focus so typing immediately enters a new query.
-- [x] **Loading Indicator**:
-  - [x] Added animated Fluent `ProgressBar` (`PbSearchLoading`) in `SearchResultsView` while querying WinGet online.
-- [x] **Remove Search Tab From Categories**:
-  - [x] Removed `🌐 WinGet` tab from `TabCats`.
-  - [x] Unified search UX: user types in the top search box; pressing `Enter` transitions to `SearchResultsView` with "Back to Categories" button.
+- [x] **Search Box Activation & Category Inactivity**:
+  - [x] Fixed function scope bug: declared `script:Show-CategoryView` and `script:Show-SearchResultView` in script scope so they are callable from any scriptblock.
+  - [x] Used `PreviewKeyDown` for `[Enter]` with `$e.Handled = $true` so online search always triggers without being intercepted.
+  - [x] When search is focused or active, category tabs automatically become inactive (`IsEnabled = $false`, `Opacity = 0.4`), clearly showing that search mode is active.
+  - [x] Exiting search, clearing text, or clicking "Back to Categories" smoothly re-enables categories (`IsEnabled = $true`, `Opacity = 1.0`).
+- [x] **Caret & Loading Bar**:
+  - [x] Text caret ("палочка") styled with `CaretBrush="{DynamicResource AppText}"`.
+  - [x] Animated Fluent progress bar appears during WinGet online query.
 - [x] **Install Script Fix**:
   - [x] Saved [install.ps1](file:///D:/Projects/WinKit/install.ps1) with UTF-8 without BOM and ASCII dashes to ensure clean `irm | iex` execution in Windows PowerShell 5.1.
 - [x] **Catalog & Docs**:
