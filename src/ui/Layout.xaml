@@ -240,7 +240,8 @@
                     
                     <StackPanel Orientation="Horizontal" Grid.Column="0">
                         <Button Name="BtnSelectAll" Content="Select All" Width="100" Height="35" Margin="0,0,10,0"/>
-                        <Button Name="BtnClearAll" Content="Clear All" Width="100" Height="35"/>
+                        <Button Name="BtnClearAll" Content="Clear All" Width="100" Height="35" Margin="0,0,10,0"/>
+                        <Button Name="BtnUpgradeAll" Content="Upgrade All" Width="100" Height="35" ToolTip="Update all outdated applications on this PC"/>
                     </StackPanel>
                     
                     <StackPanel Orientation="Horizontal" Grid.Column="2" HorizontalAlignment="Right">

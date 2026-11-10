@@ -1,6 +1,6 @@
 ﻿# --- WinKit Installation Engine ---
 
-function Start-AppsInstallation($toInstall, $winControls) {
+function Start-AppsInstallation($toInstall, $winControls, [switch]$isUpgradeAll) {
     $TxtLog = $winControls.TxtLog
     $LblProgressTitle = $winControls.LblProgressTitle
     $LblProgress = $winControls.LblProgress
@@ -14,7 +14,7 @@ function Start-AppsInstallation($toInstall, $winControls) {
     $BtnCancelInstall.Content = "Cancel"
     $BtnCancelInstall.IsEnabled = $true
     if ($BtnExportLog) { $BtnExportLog.Visibility = "Collapsed" }
-    $LblProgressTitle.Text = "Installing Apps..."
+    $LblProgressTitle.Text = if ($isUpgradeAll) { "Updating Outdated Applications..." } else { "Installing Apps..." }
     $PbInstall.IsIndeterminate = $true
     $PbInstall.Visibility = "Visible"
 
@@ -31,12 +31,16 @@ function Start-AppsInstallation($toInstall, $winControls) {
         }
 
         $count++
-        $LblProgress.Text = "Installing ($count / $($toInstall.Count)): $($app.Name)"
+        $LblProgress.Text = if ($isUpgradeAll) { "Running WinGet Upgrade..." } else { "Installing ($count / $($toInstall.Count)): $($app.Name)" }
         $TxtLog.AppendText("`n---> Starting: $($app.Name)`n")
         $TxtLog.ScrollToEnd()
         DoEvents
 
-        $wArgs = "install --exact --id=$($app.Id) --source=winget --silent --disable-interactivity --accept-package-agreements --accept-source-agreements"
+                if ($isUpgradeAll) {
+            $wArgs = "upgrade --all --silent --disable-interactivity --accept-package-agreements --accept-source-agreements"
+        } else {
+            $wArgs = "install --exact --id=$($app.Id) --source=winget --silent --disable-interactivity --accept-package-agreements --accept-source-agreements"
+        }
         if ($app.Dep -and $global:depCheckBoxes.ContainsKey($app.Name)) {
             $depChk = $global:depCheckBoxes[$app.Name]
             if (-not $depChk.IsChecked) { 
@@ -138,7 +142,7 @@ function Start-AppsInstallation($toInstall, $winControls) {
                                     }
                                     $isDownloading = $false
                                     $PbInstall.IsIndeterminate = $true
-                                    $LblProgress.Text = "Installing ($count / $($toInstall.Count)): $($app.Name)"
+                                    $LblProgress.Text = if ($isUpgradeAll) { "Running WinGet Upgrade..." } else { "Installing ($count / $($toInstall.Count)): $($app.Name)" }
                                 }
                             }
                         }
@@ -311,7 +315,7 @@ function Start-AppsInstallation($toInstall, $winControls) {
     if ($global:cancelInstall) {
         $LblProgressTitle.Text = "Installation Aborted"
     } else {
-        $LblProgressTitle.Text = "Installation Complete"
+        $LblProgressTitle.Text = if ($isUpgradeAll) { "Upgrade Complete" } else { "Installation Complete" }
     }
     
     $PbInstall.IsIndeterminate = $false
@@ -479,4 +483,15 @@ function Start-AppsInstallation($toInstall, $winControls) {
     $BtnCancelInstall.Content = "Close"
     $BtnCancelInstall.IsEnabled = $true
     if ($BtnExportLog) { $BtnExportLog.Visibility = "Visible" }
+}
+
+
+function Start-SystemUpgrade($winControls) {
+    $virtualApp = @{
+        Name  = "System-wide Application Upgrade"
+        Id    = "WinGet.UpgradeAll"
+        Cat   = 99
+        Sel   = $true
+    }
+    Start-AppsInstallation @($virtualApp) $winControls -isUpgradeAll
 }

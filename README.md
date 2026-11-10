@@ -44,11 +44,13 @@ powershell -ExecutionPolicy Bypass -File winkit.ps1
 ## ✨ Features & Highlights
 
 - 🌐 **WinGet Online Search**: Search and install ANY application directly from the official WinGet catalog without leaving the app.
+- 🔍 **Installed Detection & Version Tags**: Scans your PC in the background on launch, displaying current version badges and highlighting available updates.
+- 🔄 **One-Click Upgrade All**: Batch-update all outdated software on your computer using native WinGet with real-time logs.
+- 💾 **Native WinGet JSON & TXT Presets**: Export and import application bundles in official Microsoft WinGet JSON format (`.json`) or classic text (`.txt`).
 - 🪟 **Native Windows 11 Mica Backdrop**: Translucent glass background integrating seamlessly with Windows 11 desktop theme.
 - 🌓 **Dynamic Light & Dark Themes**: Auto-detects system theme on launch and includes an instant toggle button.
 - 🎨 **Modern WPF Fluent UI**: Rounded tab categories, vector checkmarks, custom buttons, and smooth hover states.
 - 🔢 **Dynamic Selection Counter**: Real-time app counter on the Install button (`Install (5)`).
-- 💾 **Custom Preset Management**: Save and load custom selection sets with native file dialogs.
 - 🛡️ **Smart Elevation & Fallbacks**: Auto-elevates to Administrator while gracefully falling back to user-space execution for sensitive apps (Discord, Telegram, Spotify).
 - ⚡ **One-Click Batch Install**: Select apps across multiple categories and install them all via WinGet concurrently.
 
@@ -59,12 +61,14 @@ powershell -ExecutionPolicy Bypass -File winkit.ps1
 | Feature | Description |
 |---------|-------------|
 | 🌐 **WinGet Search** | Online search directly into the official WinGet repository |
+| 🔍 **Installed Status** | Background scanner detects installed software and newer versions |
+| 🔄 **Upgrade All** | One-click button to update all outdated software on your PC |
+| 💾 **Preset Support** | Save and load selections as official WinGet `.json` or `.txt` |
 | 🖥 **Modern WPF GUI** | Clean Fluent Design interface built natively with WPF |
 | 🪟 **Mica Blur** | Native DWM Mica background effect for Windows 11 |
 | 🌓 **Light & Dark Mode** | Automatic OS theme detection + live switch button |
 | 🗂 **Categorized Tabs** | Browsers, Development, Gaming, Media, Utilities, System, Productivity |
-| 💾 **Preset Support** | Save and load selection presets via native file picker |
-| 📦 **Batch Controls** | Quick `Select All` and `Clear All` buttons with live counter |
+| 📦 **Batch Controls** | Quick `Select All`, `Clear All`, and `Upgrade All` buttons |
 | 📊 **Progress & Logs** | Live download progress bar, streaming output, and exportable logs |
 | 🛡 **Auto-Elevate** | Requests administrator privileges automatically |
 

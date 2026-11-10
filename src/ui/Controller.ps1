@@ -15,6 +15,7 @@ function Initialize-UIController($winControls) {
     $script:tabCats = $winControls.TabCats
     $script:btnSelectAll = $winControls.BtnSelectAll
     $script:btnClearAll = $winControls.BtnClearAll
+    $script:btnUpgradeAll = $winControls.BtnUpgradeAll
     $script:btnSave = $winControls.BtnSave
     $script:btnLoad = $winControls.BtnLoad
     $script:btnInstall = $winControls.BtnInstall
@@ -40,6 +41,8 @@ function Initialize-UIController($winControls) {
     $script:onlineCheckBoxes = @()
     $script:appPanels = @()
     $script:registeredApps = @{}
+    $script:appStatusLabels = @{}
+    $script:installedPackages = @{}
     $global:depCheckBoxes = @{}
 
     function Update-InstallCount {
@@ -71,6 +74,91 @@ function Initialize-UIController($winControls) {
         if ($script:searchResultsView) { $script:searchResultsView.Visibility = "Visible" }
     }
 
+    function script:Update-AppInstalledBadge {
+        if ($null -eq $script:installedPackages -or $script:installedPackages.Keys.Count -eq 0) { return }
+        $brushGreen = $global:brushConverter.ConvertFromString("#107C41")
+        $brushYellow = $global:brushConverter.ConvertFromString("#DCA200")
+
+        foreach ($app in $global:apps) {
+            if ($script:installedPackages.ContainsKey($app.Id) -and $script:appStatusLabels.ContainsKey($app.Id)) {
+                $info = $script:installedPackages[$app.Id]
+                $lbl = $script:appStatusLabels[$app.Id]
+                if ($info.Available) {
+                    $lbl.Text = "Installed (v$($info.Version)) • Update: v$($info.Available)"
+                    $lbl.Foreground = $brushYellow
+                    $lbl.ToolTip = "Installed: $($info.Version). Available in WinGet: $($info.Available)"
+                } else {
+                    $verStr = if ($info.Version -and $info.Version -ne "Unknown") { " (v$($info.Version))" } else { "" }
+                    $lbl.Text = "Installed$verStr"
+                    $lbl.Foreground = $brushGreen
+                    $lbl.ToolTip = "Installed and up to date"
+                }
+                $lbl.Visibility = "Visible"
+            }
+        }
+    }
+
+    function script:Start-BackgroundPackageDetection {
+        try {
+            $runspace = [runspacefactory]::CreateRunspace()
+            $runspace.Open()
+            $ps = [powershell]::Create()
+            $ps.Runspace = $runspace
+            $null = $ps.AddScript({
+                $raw = winget list --source winget --accept-source-agreements 2>$null
+                $dashLine = $raw | Where-Object { $_ -match '^-{10,}' } | Select-Object -First 1
+                $installed = @{}
+                if ($dashLine) {
+                    $headerLineIndex = [array]::IndexOf($raw, $dashLine) - 1
+                    if ($headerLineIndex -ge 0) {
+                        $header = $raw[$headerLineIndex]
+                        $idCol = $header.IndexOf('Id')
+                        $verCol = $header.IndexOf('Version')
+                        $availCol = $header.IndexOf('Available')
+                        
+                        for ($i = $headerLineIndex + 2; $i -lt $raw.Count; $i++) {
+                            $line = $raw[$i]
+                            if (-not $line -or $line.Trim().Length -eq 0 -or $line.Length -le $idCol) { continue }
+                            $rest = $line.Substring($idCol)
+                            $id = ($rest -split '\s+')[0]
+                            $version = if ($verCol -gt 0 -and $line.Length -gt $verCol) { ($line.Substring($verCol) -split '\s+')[0] } else { '' }
+                            $avail = if ($availCol -gt 0 -and $line.Length -gt $availCol) { ($line.Substring($availCol) -split '\s+')[0] } else { '' }
+                            if ($id) {
+                                $installed[$id] = @{
+                                    Version   = $version
+                                    Available = $avail
+                                }
+                            }
+                        }
+                    }
+                }
+                return $installed
+            })
+
+            $asyncResult = $ps.BeginInvoke()
+            $timer = New-Object System.Windows.Threading.DispatcherTimer
+            $timer.Interval = [TimeSpan]::FromMilliseconds(400)
+            $timer.Add_Tick({
+                if ($asyncResult.IsCompleted) {
+                    $timer.Stop()
+                    try {
+                        $res = $ps.EndInvoke($asyncResult)
+                        if ($res -and $res[0]) {
+                            $script:installedPackages = $res[0]
+                            Update-AppInstalledBadge
+                        }
+                    } catch { $null = $_ }
+                    finally {
+                        $ps.Dispose()
+                        $runspace.Close()
+                        $runspace.Dispose()
+                    }
+                }
+            })
+            $timer.Start()
+        } catch { $null = $_ }
+    }
+
     # Populate categories and apps
     for ($c = 0; $c -lt $global:cats.Count; $c++) {
         $tabItem = New-Object System.Windows.Controls.TabItem
@@ -86,8 +174,8 @@ function Initialize-UIController($winControls) {
             $script:registeredApps[$app.Name] = $app
             $panel = New-Object System.Windows.Controls.StackPanel
             $panel.Orientation = "Vertical"
-            $panel.Width = 220
-            $panel.Margin = "0,0,0,5"
+            $panel.Width = 230
+            $panel.Margin = "0,0,0,8"
             $panel.Tag = @{ App = $app; CatIndex = $c }
             
             $chk = New-Object System.Windows.Controls.CheckBox
@@ -98,6 +186,13 @@ function Initialize-UIController($winControls) {
             $chk.Add_Unchecked({ Update-InstallCount })
             $panel.Children.Add($chk) | Out-Null
             $script:checkBoxes += $chk
+
+            $lblStatus = New-Object System.Windows.Controls.TextBlock
+            $lblStatus.FontSize = 10
+            $lblStatus.Margin = "28,1,0,0"
+            $lblStatus.Visibility = "Collapsed"
+            $panel.Children.Add($lblStatus) | Out-Null
+            $script:appStatusLabels[$app.Id] = $lblStatus
             
             if ($app.Dep) {
                 $chkDep = New-Object System.Windows.Controls.CheckBox
@@ -148,8 +243,8 @@ function Initialize-UIController($winControls) {
                 $headerLineIndex = [array]::IndexOf($raw, $dashLine) - 1
                 if ($headerLineIndex -ge 0) {
                     $header = $raw[$headerLineIndex]
-                    $idCol = $header.IndexOf("Id")
-                    $verCol = $header.IndexOf("Version")
+                    $idCol = $header.IndexOf('Id')
+                    $verCol = $header.IndexOf('Version')
                     if ($idCol -ge 0) {
                         for ($i = $headerLineIndex + 2; $i -lt $raw.Count; $i++) {
                             $line = $raw[$i]
@@ -220,6 +315,22 @@ function Initialize-UIController($winControls) {
                     $subText.TextTrimming = "CharacterEllipsis"
                     $subText.ToolTip = "$($item.Name) ($($item.Id))"
                     $cardPanel.Children.Add($subText) | Out-Null
+
+                    # If already installed on machine, show badge in search card too
+                    if ($script:installedPackages.ContainsKey($item.Id)) {
+                        $appInstalledInfo = $script:installedPackages[$item.Id]
+                        $badge = New-Object System.Windows.Controls.TextBlock
+                        $badge.FontSize = 10
+                        $badge.Margin = "28,2,0,0"
+                        if ($appInstalledInfo.Available) {
+                            $badge.Text = "Installed (v$($appInstalledInfo.Version)) • Update: v$($appInstalledInfo.Available)"
+                            $badge.Foreground = $global:brushConverter.ConvertFromString("#DCA200")
+                        } else {
+                            $badge.Text = "Installed (v$($appInstalledInfo.Version))"
+                            $badge.Foreground = $global:brushConverter.ConvertFromString("#107C41")
+                        }
+                        $cardPanel.Children.Add($badge) | Out-Null
+                    }
 
                     $card.Child = $cardPanel
                     if ($script:searchResultsWrap) { $script:searchResultsWrap.Children.Add($card) | Out-Null }
@@ -333,7 +444,6 @@ function Initialize-UIController($winControls) {
             }
 
             if (-not $isInside) {
-                # Clicked outside search: restore categories and drop search focus
                 if ($script:tabCats -and $script:searchResultsView.Visibility -ne "Visible") {
                     $script:tabCats.IsEnabled = $true
                     $script:tabCats.Opacity = 1.0
@@ -377,7 +487,31 @@ function Initialize-UIController($winControls) {
         Update-InstallCount
     })
 
-    # Preset save handler with path selection
+    # Upgrade All handler
+    if ($script:btnUpgradeAll) {
+        $script:btnUpgradeAll.Add_Click({
+            $script:btnUpgradeAll.IsEnabled = $false
+            $script:ProgressOverlay.Visibility = "Visible"
+            $script:TxtLog.Visibility = "Visible"
+            $script:SummaryScroll.Visibility = "Collapsed"
+            $script:SummaryPanel.Children.Clear()
+            $global:cancelInstall = $false
+            $script:TxtLog.Text = ""
+            $script:btnCancelInstall.Content = "Cancel"
+            $script:btnCancelInstall.IsEnabled = $true
+            if ($script:btnExportLog) { $script:btnExportLog.Visibility = "Collapsed" }
+            DoEvents
+
+            try {
+                Start-SystemUpgrade $script:winControls
+            } finally {
+                $script:btnUpgradeAll.IsEnabled = $true
+                Start-BackgroundPackageDetection
+            }
+        })
+    }
+
+    # Preset save handler (supports .json WinGet schema and legacy .txt)
     $script:btnSave.Add_Click({
         $sel = @()
         foreach ($chk in ($script:checkBoxes + $script:onlineCheckBoxes)) {
@@ -390,14 +524,41 @@ function Initialize-UIController($winControls) {
 
         $sfd = New-Object Microsoft.Win32.SaveFileDialog
         $sfd.Title = "Save WinKit Preset"
-        $sfd.Filter = "WinKit Preset (*.txt)|*.txt|All Files (*.*)|*.*"
-        $sfd.FileName = "winkit-preset.txt"
+        $sfd.Filter = "WinGet Package List (*.json)|*.json|WinKit Preset (*.txt)|*.txt|All Files (*.*)|*.*"
+        $sfd.FileName = "winkit-packages.json"
         $docs = [Environment]::GetFolderPath([Environment+SpecialFolder]::MyDocuments)
         if ($docs -and (Test-Path $docs)) { $sfd.InitialDirectory = $docs }
 
         if ($sfd.ShowDialog() -eq $true) {
             try {
-                $sel -join "`n" | Out-File -FilePath $sfd.FileName -Encoding utf8
+                if ($sfd.FileName.EndsWith(".json", [System.StringComparison]::OrdinalIgnoreCase)) {
+                    $pkgList = @()
+                    foreach ($chk in ($script:checkBoxes + $script:onlineCheckBoxes)) {
+                        if ($chk.IsChecked -eq $true -and $script:registeredApps.ContainsKey($chk.Uid)) {
+                            $app = $script:registeredApps[$chk.Uid]
+                            $pkgList += @{ PackageIdentifier = $app.Id }
+                        }
+                    }
+                    $exportObj = [ordered]@{
+                        '$schema'     = "https://aka.ms/winget-packages.schema.2.0.json"
+                        CreationDate = (Get-Date -Format "yyyy-MM-ddTHH:mm:ssK")
+                        Sources      = @(
+                            [ordered]@{
+                                Packages      = $pkgList
+                                SourceDetails = [ordered]@{
+                                    Argument   = "https://cdn.winget.microsoft.com/cache"
+                                    Identifier = "Microsoft.Winget.Source_8wekyb3d8bbwe"
+                                    Name       = "winget"
+                                    Type       = "Microsoft.PreIndexed.Package"
+                                }
+                            }
+                        )
+                    }
+                    $json = $exportObj | ConvertTo-Json -Depth 5
+                    [System.IO.File]::WriteAllText($sfd.FileName, $json, [System.Text.UTF8Encoding]::new($false))
+                } else {
+                    $sel -join "`n" | Out-File -FilePath $sfd.FileName -Encoding utf8
+                }
                 [System.Windows.MessageBox]::Show("Preset saved successfully to:`n$($sfd.FileName)", "Success", 0, 64)
             } catch {
                 [System.Windows.MessageBox]::Show("Failed to save preset: $_", "Error", 0, 16)
@@ -405,22 +566,38 @@ function Initialize-UIController($winControls) {
         }
     })
 
-    # Preset load handler with path selection
+    # Preset load handler (supports .json WinGet schema and legacy .txt)
     $script:btnLoad.Add_Click({
         $ofd = New-Object Microsoft.Win32.OpenFileDialog
-        $ofd.Title = "Load WinKit Preset"
-        $ofd.Filter = "WinKit Preset (*.txt)|*.txt|All Files (*.*)|*.*"
-        $ofd.FileName = "winkit-preset.txt"
+        $ofd.Title = "Load Preset or WinGet Packages"
+        $ofd.Filter = "Supported Presets (*.json;*.txt)|*.json;*.txt|WinGet Package List (*.json)|*.json|WinKit Preset (*.txt)|*.txt|All Files (*.*)|*.*"
+        $ofd.FileName = "winkit-packages.json"
         $docs = [Environment]::GetFolderPath([Environment+SpecialFolder]::MyDocuments)
         if ($docs -and (Test-Path $docs)) { $ofd.InitialDirectory = $docs }
 
         if ($ofd.ShowDialog() -eq $true) {
             if (Test-Path $ofd.FileName) {
                 try {
-                    $lines = @(Get-Content $ofd.FileName | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+                    $targetIds = @()
+                    if ($ofd.FileName.EndsWith(".json", [System.StringComparison]::OrdinalIgnoreCase)) {
+                        $jsonContent = Get-Content $ofd.FileName -Raw | ConvertFrom-Json
+                        if ($jsonContent.Sources) {
+                            foreach ($src in $jsonContent.Sources) {
+                                if ($src.Packages) {
+                                    foreach ($pkg in $src.Packages) {
+                                        if ($pkg.PackageIdentifier) { $targetIds += $pkg.PackageIdentifier }
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        $targetIds = @(Get-Content $ofd.FileName | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+                    }
+
                     $matchedCount = 0
                     foreach ($chk in ($script:checkBoxes + $script:onlineCheckBoxes)) {
-                        $isChecked = $lines -contains $chk.Uid
+                        $app = if ($script:registeredApps.ContainsKey($chk.Uid)) { $script:registeredApps[$chk.Uid] } else { $null }
+                        $isChecked = ($null -ne $app -and ($targetIds -contains $app.Id -or $targetIds -contains $app.Name)) -or ($targetIds -contains $chk.Uid)
                         $chk.IsChecked = $isChecked
                         if ($isChecked) { $matchedCount++ }
                     }
@@ -514,6 +691,8 @@ function Initialize-UIController($winControls) {
             Start-AppsInstallation $toInstall $script:winControls
         } finally {
             $script:btnInstall.IsEnabled = $true
+            # Refresh installed status badges after installation completes!
+            Start-BackgroundPackageDetection
         }
     })
 
@@ -550,4 +729,7 @@ function Initialize-UIController($winControls) {
     $script:win.Add_Closed({
         Unregister-ThemeListener
     })
+
+    # Start non-blocking background scan for installed packages & updates
+    Start-BackgroundPackageDetection
 }
